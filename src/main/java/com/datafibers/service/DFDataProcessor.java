@@ -53,10 +53,6 @@ public class DFDataProcessor extends AbstractVerticle {
     public String COLLECTION_INSTALLED;
     public String COLLECTION_META;
     public String COLLECTION_LOG;
-    private String repo_conn_str;
-    private String repo_hostname;
-    private String repo_port;
-    private String repo_db;
     private MongoClient mongo;
     private MongoAdminClient mongoDFInstalled;
     private WebClient wc_schema;
@@ -72,7 +68,7 @@ public class DFDataProcessor extends AbstractVerticle {
     private Integer df_rest_port;
 
     // Connects attributes
-    private Boolean kafka_connect_enabled;
+    private Boolean kafkaConnectEnabled;
     private String kafka_connect_rest_host;
     private Integer kafka_connect_rest_port;
     private Boolean kafka_connect_import_start;
@@ -120,15 +116,15 @@ public class DFDataProcessor extends AbstractVerticle {
         this.COLLECTION_INSTALLED = config().getString("db.collection_installed.name", "df_installed");
         this.COLLECTION_META = config().getString("db.metadata.collection.name", "df_meta");
         this.COLLECTION_LOG = config().getString("db.log.collection.name", "df_log");
-        this.repo_db = config().getString("db.name", "DEFAULT_DB");
-        this.repo_conn_str = config().getString("repo.connection.string", "mongodb://localhost:27017");
-        this.repo_hostname = repo_conn_str.replace("//", "").split(":")[1];
-        this.repo_port = repo_conn_str.replace("//", "").split(":")[2];
+        String repoDb = config().getString("db.name", "DEFAULT_DB");
+        String repoConnStr = config().getString("repo.connection.string", "mongodb://localhost:27017");
+        String repoHostname = repoConnStr.replace("//", "").split(":")[1];
+        String repoPort = repoConnStr.replace("//", "").split(":")[2];
 
         this.df_rest_port = config().getInteger("rest.port.df.processor", 8080);
 
         // Get Connects config
-        this.kafka_connect_enabled = config().getBoolean("kafka.connect.enable", Boolean.TRUE);
+        this.kafkaConnectEnabled = config().getBoolean("kafka.connect.enable", Boolean.TRUE);
         this.kafka_connect_rest_host = config().getString("kafka.connect.rest.host", "localhost");
         this.kafka_connect_rest_port = config().getInteger("kafka.connect.rest.port", 8083);
         this.kafka_connect_import_start = config().getBoolean("kafka.connect.import.start", Boolean.TRUE);
@@ -163,34 +159,34 @@ public class DFDataProcessor extends AbstractVerticle {
         // Application init in separate thread and report complete once done
         vertx.executeBlocking(future -> {
 
-            mongo = MongoClient.createShared(vertx, new JsonObject().put("connection_string", repo_conn_str).put("db_name", repo_db));
+            mongo = MongoClient.createShared(vertx, new JsonObject().put("connection_string", repoConnStr).put("db_name", repoDb));
 
             // df_meta mongo client to find default connector.class
-            mongoDFInstalled = new MongoAdminClient(repo_hostname, repo_port, repo_db, COLLECTION_INSTALLED);
+            mongoDFInstalled = new MongoAdminClient(repoHostname, repoPort, repoDb, COLLECTION_INSTALLED);
 
             // Cleanup Log in mongodb
             if (config().getBoolean("db.log.cleanup.on.start", Boolean.TRUE))
-                new MongoAdminClient(repo_hostname, repo_port, repo_db).truncateCollection(COLLECTION_LOG).close();
+                new MongoAdminClient(repoHostname, repoPort, repoDb).truncateCollection(COLLECTION_LOG).close();
 
             // Set dynamic logging to MongoDB
             MongoDbAppender mongoAppender = new MongoDbAppender();
-            mongoAppender.setDatabaseName(repo_db);
+            mongoAppender.setDatabaseName(repoDb);
             mongoAppender.setCollectionName(COLLECTION_LOG);
-            mongoAppender.setHostname(repo_hostname);
-            mongoAppender.setPort(repo_port);
+            mongoAppender.setHostname(repoHostname);
+            mongoAppender.setPort(repoPort);
             mongoAppender.activateOptions();
             Logger.getRootLogger().addAppender(mongoAppender);
 
             LOG.info(DFAPIMessage.logResponseMessage(1029, "Mongo Client & Log Shipping Setup Complete"));
 
             // Non-blocking Rest API Client to talk to Kafka Connect when needed
-            if (this.kafka_connect_enabled) {
+            if (this.kafkaConnectEnabled) {
                 this.wc_connect = WebClient.create(vertx);
                 this.wc_schema = WebClient.create(vertx);
             }
 
             // Import from remote server. It is blocking at this point.
-            if (this.kafka_connect_enabled && this.kafka_connect_import_start) {
+            if (this.kafkaConnectEnabled && this.kafka_connect_import_start) {
                 importAllFromKafkaConnect();
                 // importAllFromFlinkTransform();
                 startMetadataSink();
@@ -243,7 +239,7 @@ public class DFDataProcessor extends AbstractVerticle {
         this.wc_streamback = WebClient.create(vertx);
 
         vertx.setPeriodic(ConstantApp.REGULAR_REFRESH_STATUS_TO_REPO, id -> {
-            if(this.kafka_connect_enabled) updateKafkaConnectorStatus();
+            if(this.kafkaConnectEnabled) updateKafkaConnectorStatus();
             if(this.transform_engine_flink_enabled) updateFlinkJobStatus();
             if(this.transform_engine_spark_enabled) updateSparkJobStatus();
         });
@@ -1167,7 +1163,7 @@ public class DFDataProcessor extends AbstractVerticle {
 				LOG.info(DFAPIMessage.logResponseMessage(1018, mongoId + " - " + connectorClass));
 			}
 		}
-        if (!this.kafka_connect_enabled || !dfJob.getConnectorType().contains("CONNECT")) {
+        if (!this.kafkaConnectEnabled || !dfJob.getConnectorType().contains("CONNECT")) {
 			mongo.insert(COLLECTION, dfJob.toJson(), r -> HelpFunc.responseCorsHandleAddOn(c.response())
 					.setStatusCode(ConstantApp.STATUS_CODE_OK_CREATED).end(Json.encodePrettily(dfJob)));
 			LOG.warn(DFAPIMessage.logResponseMessage(9008, mongoId));
@@ -1357,7 +1353,7 @@ public class DFDataProcessor extends AbstractVerticle {
 						else {
 							String before_update_connectorConfigString = res.result().getJsonObject("connectorConfig")
 									.toString();
-							if (enforceSubmit || (this.kafka_connect_enabled
+							if (enforceSubmit || (this.kafkaConnectEnabled
 									&& dfJob.getConnectorType().contains("CONNECT")
 									&& connectorConfigString.compareTo(before_update_connectorConfigString) != 0))
 								ProcessorConnectKafka.forwardPUTAsUpdateOne(c, wc_connect, mongo, COLLECTION,
@@ -1548,7 +1544,7 @@ public class DFDataProcessor extends AbstractVerticle {
 						return;
 					}
 					DFJobPOPJ dfJob = new DFJobPOPJ(ar.result());
-					if (this.kafka_connect_enabled && (dfJob.getConnectorType().contains("CONNECT")))
+					if (this.kafkaConnectEnabled && (dfJob.getConnectorType().contains("CONNECT")))
 						ProcessorConnectKafka.forwardDELETEAsDeleteOne(c, wc_connect, mongo, COLLECTION,
 								kafka_connect_rest_host, kafka_connect_rest_port, dfJob);
 					else {
