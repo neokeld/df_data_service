@@ -22,8 +22,6 @@ import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.SavepointRestoreSettings;
 
 import scala.concurrent.Await;
-import scala.concurrent.Future;
-
 import com.datafibers.model.DFJobPOPJ;
 
 /**
