@@ -48,15 +48,15 @@ import org.log4mongo.MongoDbAppender;
 public class DFDataProcessor extends AbstractVerticle {
 
     // Generic attributes
-    public static String COLLECTION;
-    public static String COLLECTION_MODEL;
-    public static String COLLECTION_INSTALLED;
-    public static String COLLECTION_META;
-    public static String COLLECTION_LOG;
-    private static String repo_conn_str;
-    private static String repo_hostname;
-    private static String repo_port;
-    private static String repo_db;
+    public String COLLECTION;
+    public String COLLECTION_MODEL;
+    public String COLLECTION_INSTALLED;
+    public String COLLECTION_META;
+    public String COLLECTION_LOG;
+    private String repo_conn_str;
+    private String repo_hostname;
+    private String repo_port;
+    private String repo_db;
     private MongoClient mongo;
     private MongoAdminClient mongoDFInstalled;
     private WebClient wc_schema;
@@ -65,53 +65,48 @@ public class DFDataProcessor extends AbstractVerticle {
     private WebClient wc_spark;
     private WebClient wc_refresh;
     private WebClient wc_streamback;
-    private static String df_jar_path;
-    private static String df_jar_name;
-    private static String flink_jar_id;
+    private String df_jar_path;
+    private String df_jar_name;
+    private String flink_jar_id;
 
-    private static Integer df_rest_port;
+    private Integer df_rest_port;
 
     // Connects attributes
-    private static Boolean kafka_connect_enabled;
-    private static String kafka_connect_rest_host;
-    private static Integer kafka_connect_rest_port;
-    private static Boolean kafka_connect_import_start;
+    private Boolean kafka_connect_enabled;
+    private String kafka_connect_rest_host;
+    private Integer kafka_connect_rest_port;
+    private Boolean kafka_connect_import_start;
 
     // Transforms attributes flink
-    public static Boolean transform_engine_flink_enabled;
-    private static String flink_server_host;
-    private static Integer flink_rest_server_port;
-    private static String flink_rest_server_host_port;
+    public Boolean transform_engine_flink_enabled;
+    private String flink_server_host;
+    private Integer flink_rest_server_port;
+    private String flink_rest_server_host_port;
 
     // Transforms attributes spark
-    public static Boolean transform_engine_spark_enabled;
-    private static String spark_livy_server_host;
-    private static Integer spark_livy_server_port;
-    private static String spark_livy_server_host_port;
+    public Boolean transform_engine_spark_enabled;
+    private String spark_livy_server_host;
+    private Integer spark_livy_server_port;
 
     // Kafka attributes
-    private static String kafka_server_host;
-    private static Integer kafka_server_port;
-    public static String kafka_server_host_and_port;
+    private String kafka_server_host;
+    private Integer kafka_server_port;
+    public String kafka_server_host_and_port;
 
     // Schema Registry attributes
-    private static String schema_registry_host_and_port;
-    private static Integer schema_registry_rest_port;
-    private static String schema_registry_rest_hostname;
+    private String schema_registry_host_and_port;
+    private Integer schema_registry_rest_port;
+    private String schema_registry_rest_hostname;
 
     // Web HDFS attributes
-    private static String webhdfs_host_and_port;
-    private static Integer webhdfs_rest_port;
-    private static String webhdfs_rest_hostname;
+    private Integer webhdfs_rest_port;
+    private String webhdfs_rest_hostname;
 
 
     private static final Logger LOG = Logger.getLogger(DFDataProcessor.class);
 
     @Override
     public void start(Future<Void> v) {
-
-//        VertxOptions options = new VertxOptions();
-//        options.setBlockedThreadCheckInterval(1000*60*60);
 
         this.df_jar_path = getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
         this.df_jar_name = new File(df_jar_path).getName();
@@ -149,9 +144,6 @@ public class DFDataProcessor extends AbstractVerticle {
         this.transform_engine_spark_enabled = config().getBoolean("transform.engine.spark.enable", Boolean.TRUE);
         this.spark_livy_server_host = config().getString("spark.livy.server.host", "localhost");
         this.spark_livy_server_port = config().getInteger("spark.livy.server.port", 8998);
-        this.spark_livy_server_host_port = (this.flink_server_host.contains("http")?
-                this.spark_livy_server_host : "http://" + this.spark_livy_server_host) + ":" +
-                this.spark_livy_server_port;
 
         // Kafka config
         this.kafka_server_host = this.kafka_connect_rest_host;
@@ -166,7 +158,6 @@ public class DFDataProcessor extends AbstractVerticle {
         // WebHDFS
         this.webhdfs_rest_port = config().getInteger("webhdfs.server.port", 50070);
         this.webhdfs_rest_hostname = config().getString("webhdfs.server.host", "localhost");
-        this.webhdfs_host_and_port = this.webhdfs_rest_hostname + ":" + this.webhdfs_rest_port;
 
 
         // Application init in separate thread and report complete once done

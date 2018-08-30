@@ -4,15 +4,14 @@ import com.datafibers.flinknext.Kafka010AvroTableSource;
 import com.datafibers.flinknext.Kafka09AvroTableSink;
 import com.datafibers.util.ConstantApp;
 import com.datafibers.util.SchemaRegistryClient;
-import org.apache.commons.codec.DecoderException;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.log4j.Logger;
-import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Properties;
 
 /**
@@ -22,11 +21,10 @@ public class TCFlinkAvroSQL {
 
     private static final Logger LOG = Logger.getLogger(TCFlinkAvroSQL.class);
 
-    public static void tcFlinkAvroSQL(String SchemaRegistryHostPort, String srcTopic, String targetTopic, String sqlState) {
-        System.out.println("tcFlinkAvroSQL");
+    public static void tcFlinkAvroSQL(String schemaRegistryHostPort, String srcTopic, String targetTopic, String sqlState) {
+        LOG.info("tcFlinkAvroSQL");
         String resultFile = "testResult";
 
-        //String jarPath = "/Users/will/Documents/Coding/GitHub/df_data_service/target/df-data-service-1.1-SNAPSHOT-fat.jar";
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment("localhost", 6123, "C:/Users/dadu/Coding/df_data_service/target/df-data-service-1.1-SNAPSHOT-fat.jar")
                 .setParallelism(1);
         StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
@@ -34,8 +32,7 @@ public class TCFlinkAvroSQL {
         Properties properties = new Properties();
         properties.setProperty(ConstantApp.PK_KAFKA_HOST_PORT.replace("_", "."), "localhost:9092");
         properties.setProperty(ConstantApp.PK_KAFKA_CONSUMER_GROURP, "consumer_test");
-        //properties.setProperty(ConstantApp.PK_SCHEMA_SUB_OUTPUT, "test");
-        properties.setProperty(ConstantApp.PK_KAFKA_SCHEMA_REGISTRY_HOST_PORT.replace("_", "."), SchemaRegistryHostPort);
+        properties.setProperty(ConstantApp.PK_KAFKA_SCHEMA_REGISTRY_HOST_PORT.replace("_", "."), schemaRegistryHostPort);
         properties.setProperty(ConstantApp.PK_FLINK_TABLE_SINK_KEYS, "symbol");
 
         String[] srcTopicList = srcTopic.split(",");
@@ -49,24 +46,23 @@ public class TCFlinkAvroSQL {
         try {
             Table result = tableEnv.sql(sqlState);
             result.printSchema();
-            System.out.println("generated avro schema is = " + SchemaRegistryClient.tableAPIToAvroSchema(result, targetTopic));
-            SchemaRegistryClient.addSchemaFromTableResult(SchemaRegistryHostPort, targetTopic, result);
+            LOG.info("generated avro schema is = " + SchemaRegistryClient.tableAPIToAvroSchema(result, targetTopic));
+            SchemaRegistryClient.addSchemaFromTableResult(schemaRegistryHostPort, targetTopic, result);
 
             // delivered properties
             properties.setProperty(ConstantApp.PK_SCHEMA_SUB_OUTPUT, targetTopic);
             properties.setProperty(ConstantApp.PK_SCHEMA_ID_OUTPUT, SchemaRegistryClient.getLatestSchemaIDFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_OUTPUT) + "");
             properties.setProperty(ConstantApp.PK_SCHEMA_STR_OUTPUT, SchemaRegistryClient.getLatestSchemaFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_OUTPUT).toString());
 
-            System.out.println(Paths.get(resultFile).toAbsolutePath());
+            LOG.info(Paths.get(resultFile).toAbsolutePath());
             result.writeToSink(new Kafka09AvroTableSink(targetTopic, properties, new FlinkFixedPartitioner()));
-            //result.writeToSink(new CsvTableSink(resultFile, "|", 1, FileSystem.WriteMode.OVERWRITE));
             env.execute("tcFlinkAvroSQL");
         } catch (Exception e) {
-            e.printStackTrace();
+        	LOG.error(Arrays.toString(e.getStackTrace()));
         }
     }
 
-    public static void main(String[] args) throws IOException, DecoderException {
+    public static void main(String[] args) {
         //TODO since sink avro only support primary type, we cannot select other unsupport type in the select statement
 
         tcFlinkAvroSQL("localhost:8002", "test_stock", "SQLSTATE_UNION_01",

@@ -14,7 +14,6 @@ import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
-import org.apache.log4j.Logger;
 import com.datafibers.util.ConstantApp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,14 +29,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class AvroRowDeserializationSchema implements DeserializationSchema<Row> {
 
     private static final long serialVersionUID = 0x3C192A12BCAC82DBL;
-    private static final Logger LOG = Logger.getLogger(AvroRowDeserializationSchema.class);
 
     /** Field names to parse. Indices match fieldTypes indices. */
     private final String[] fieldNames;
     /** Types to parse fields as. Indices match fieldNames indices. */
     private final TypeInformation<?>[] fieldTypes;
-    /** Avro Schema for the row is in this properties. It has to be final. */
-    private final Properties properties;
     private final String static_avro_schema;
 
     /** Object mapper for parsing the JSON. */
@@ -59,7 +55,7 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
      */
     public AvroRowDeserializationSchema(String[] fieldNames, Class<?>[] fieldTypes, Properties properties) {
 
-        this.properties = Preconditions.checkNotNull(properties, "properties");
+        Preconditions.checkNotNull(properties, "properties");
         static_avro_schema = properties.getProperty(ConstantApp.PK_SCHEMA_STR_INPUT);
 
         this.fieldNames = Preconditions.checkNotNull(fieldNames, "Field names");
@@ -79,7 +75,7 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
      */
     public AvroRowDeserializationSchema(String[] fieldNames, TypeInformation<?>[] fieldTypes, Properties properties) {
 
-        this.properties = Preconditions.checkNotNull(properties, "properties");
+        Preconditions.checkNotNull(properties, "properties");
         static_avro_schema = properties.getProperty(ConstantApp.PK_SCHEMA_STR_INPUT);
 
         this.fieldNames = Preconditions.checkNotNull(fieldNames, "Field names");
@@ -92,7 +88,6 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
     @Override
     public Row deserialize(byte[] message) throws IOException {
         try {
-            String schema_id = "latest";
             BinaryDecoder decoder;
             ByteBuffer buffer = ByteBuffer.wrap(message);
 
@@ -100,7 +95,7 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
 				decoder = DecoderFactory.get().binaryDecoder(message, null);
 			else {
                 // For platform of confluent with SchemaRegister magic codec and dynamic schema
-                schema_id = buffer.getInt() + ""; // Do not comment it out. Or else, set start as 5
+                buffer.getInt(); // Do not comment it out. Or else, set start as 5
                 decoder = DecoderFactory.get().binaryDecoder(buffer.array(), buffer.position() + buffer.arrayOffset(),
 						buffer.limit() - ConstantApp.idSize - 1, null);
             }
@@ -122,7 +117,7 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
             }
 
             return row;
-        } catch (Throwable t) {
+        } catch (Exception t) {
             throw new IOException("Failed to deserialize AVRO object.", t);
         }
     }

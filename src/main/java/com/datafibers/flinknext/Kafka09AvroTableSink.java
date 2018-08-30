@@ -43,8 +43,6 @@ public class Kafka09AvroTableSink extends KafkaAvroTableSink {
 	 * @param partitioner Kafka partitioner
 	 */
 
-	private Boolean isAppendOnly;
-
 	public Kafka09AvroTableSink(String topic, Properties properties, FlinkKafkaPartitioner<Tuple2<Boolean, Row>> partitioner) {
 		super(topic, properties, partitioner);
 	}
@@ -73,7 +71,7 @@ public class Kafka09AvroTableSink extends KafkaAvroTableSink {
 
 	@Override
 	public void setIsAppendOnly(Boolean isAppendOnly) {
-		this.isAppendOnly = isAppendOnly;
+
 	}
 
 	@Override

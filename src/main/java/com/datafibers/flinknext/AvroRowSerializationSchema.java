@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -37,10 +38,6 @@ public class AvroRowSerializationSchema implements SerializationSchema<Tuple2<Bo
 	 */
 
     protected final Properties properties;
-    
-
-    /** Generic Avro Schema reader for the row */
-    private transient DatumWriter<Object> writer;
 
     /** TODO - When schema changes, the Source table does not need to be recreated.*/
 
@@ -74,7 +71,7 @@ public class AvroRowSerializationSchema implements SerializationSchema<Tuple2<Bo
             return bytes;
 
         } catch (IOException t) {
-            t.printStackTrace();
+        	LOG.error(Arrays.toString(t.getStackTrace()));
 
         	throw new RuntimeException("Failed to serialize Row.", t);
         }

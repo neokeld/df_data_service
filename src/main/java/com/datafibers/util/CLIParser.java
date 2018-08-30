@@ -13,11 +13,11 @@ public class CLIParser {
     private static final Logger LOG = Logger.getLogger(CLIParser.class);
     private String[] args;
     private Options options = new Options();
-    public static String run_mode = "";
-    public static String service_mode = "";
-    public static String test_mode = "";
-    public static String admin_tool = "";
-    public static String debug_mode = "";
+    public String run_mode = "";
+    public String service_mode = "";
+    public String test_mode = "";
+    public String admin_tool = "";
+    public String debug_mode = "";
 
 
     public CLIParser(String[] args) {
