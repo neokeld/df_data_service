@@ -9,11 +9,8 @@ import java.util.*;
 
 import static java.time.temporal.ChronoUnit.MINUTES;
 
-/**
- * Created by will on 2017-09-12.
- */
+/** Created by will on 2017-09-12. */
 public class AvroConsumerTest {
-
     private static final Properties props = new Properties();
 
     static {
@@ -29,16 +26,17 @@ public class AvroConsumerTest {
     public static void consumeAll(String topic) {
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
         consumer.subscribe(Arrays.asList(topic));
-        while (true) {
+        do {
             ConsumerRecords<String, String> records = consumer.poll(100);
-            for (ConsumerRecord<String, String> record : records)
-                System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
+            for (ConsumerRecord<String, String> record : records) {
+				System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
+			}
             if (!records.isEmpty()) {
                 consumer.commitSync();
                 consumer.close();
                 break;
             }
-        }
+        } while (true);
     }
 
     public static void consumeFromTime(String topic) {
@@ -50,22 +48,22 @@ public class AvroConsumerTest {
 			if (flag) {
 				Set<TopicPartition> assignments = consumer.assignment();
 				Map<TopicPartition, Long> query = new HashMap<>();
-				for (TopicPartition topicPartition : assignments)
+				for (TopicPartition topicPartition : assignments) {
 					query.put(topicPartition, Instant.now().minus(5, MINUTES).toEpochMilli());
+				}
 				Map<TopicPartition, OffsetAndTimestamp> result = consumer.offsetsForTimes(query);
 				result.entrySet().stream().forEach(entry -> consumer.seek(entry.getKey(),
 						Optional.ofNullable(entry.getValue()).map(OffsetAndTimestamp::offset).orElse(Long.valueOf(0))));
 				flag = false;
 			}
-			for (ConsumerRecord<String, String> record : records)
+			for (ConsumerRecord<String, String> record : records) {
 				System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
+			}
 			if (!records.isEmpty()) {
 				consumer.close();
 				break;
 			}
 		}
-
-
     }
 
     public static void consumeBatch(String topic) {
@@ -73,8 +71,9 @@ public class AvroConsumerTest {
         consumer.subscribe(Arrays.asList(topic));
         for (List<ConsumerRecord<String, String>> buffer = new ArrayList<>();;) {
 			ConsumerRecords<String, String> records = consumer.poll(100);
-			for (ConsumerRecord<String, String> record : records)
+			for (ConsumerRecord<String, String> record : records) {
 				buffer.add(record);
+			}
 			if (buffer.size() >= 10) {
 				consumer.commitSync();
 				buffer.forEach(System.out::println);
@@ -86,6 +85,6 @@ public class AvroConsumerTest {
     }
 
     public static void main(String[] args) {
-        AvroConsumerTest.consumeFromTime("test_stock");
+        consumeFromTime("test_stock");
     }
 }

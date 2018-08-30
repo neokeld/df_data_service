@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
-
 /**
  * Deserialization schema from AVRO to {@link Row}.
  *
@@ -28,14 +27,10 @@ import java.util.Properties;
  * <p>Failure during deserialization are forwarded as wrapped IOExceptions.
  */
 public class AvroRowSerializationSchema implements SerializationSchema<Tuple2<Boolean, Row>> {
-
     private static final long serialVersionUID = 0x3C192A12BCAC82DCL;
     private static final Logger LOG = Logger.getLogger(AvroRowSerializationSchema.class);
 
-
-	/**
-	 * Low-level class for serialization of Avro values.
-	 */
+	/** Low-level class for serialization of Avro values. */
 
     protected final Properties properties;
 
@@ -46,7 +41,6 @@ public class AvroRowSerializationSchema implements SerializationSchema<Tuple2<Bo
      *
      * @param schema Names of AVRO fields to parse.
      */
-
 
     public AvroRowSerializationSchema(Properties properties) {
         this.properties = properties;
@@ -69,14 +63,11 @@ public class AvroRowSerializationSchema implements SerializationSchema<Tuple2<Bo
             byte[] bytes = out.toByteArray();
             out.close();
             return bytes;
-
         } catch (IOException t) {
         	LOG.error(Arrays.toString(t.getStackTrace()));
 
         	throw new RuntimeException("Failed to serialize Row.", t);
         }
-
-
     }
 
     /**
@@ -84,22 +75,25 @@ public class AvroRowSerializationSchema implements SerializationSchema<Tuple2<Bo
      * Strings are converted into Avro's {@link Utf8} fields.
      */
     private static Object convertToRecord(Schema s, Object rowObj) {
-		if (!(rowObj instanceof Row))
+		if (!(rowObj instanceof Row)) {
 			return !(rowObj instanceof String) ? rowObj : new Utf8((String) rowObj);
+		}
 		if (s.getType() != Schema.Type.UNION) {
-			if (s.getType() != Schema.Type.RECORD)
+			if (s.getType() != Schema.Type.RECORD) {
 				throw new RuntimeException("Record type for row type expected. But is: " + s);
+			}
 		} else {
 			final List<Schema> types = s.getTypes();
 			if (types.size() == 2 && types.get(0).getType() == Schema.Type.NULL
-					&& types.get(1).getType() == Schema.Type.RECORD)
+					&& types.get(1).getType() == Schema.Type.RECORD) {
 				s = types.get(1);
-			else {
+			} else {
 				if (types.size() != 2 || types.get(0).getType() != Schema.Type.RECORD
-						|| types.get(1).getType() != Schema.Type.NULL)
+						|| types.get(1).getType() != Schema.Type.NULL) {
 					throw new RuntimeException(
 							"Currently we only support schemas of the following form: UNION[null, RECORD] or UNION[RECORD, NULL] Given: "
 									+ s);
+				}
 				s = types.get(0);
 			}
 		}
@@ -112,5 +106,4 @@ public class AvroRowSerializationSchema implements SerializationSchema<Tuple2<Bo
 		}
 		return record;
 	}
-
 }

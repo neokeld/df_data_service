@@ -5,23 +5,32 @@ import io.vertx.core.json.JsonObject;
 import java.time.LocalTime;
 import java.util.HashMap;
 
-/**
- * Meta Objects Response for REST API
- */
+/** Meta Objects Response for REST API. */
 public class DFModelPOPJ {
-
-    private String id; // id as pk, which is also used as model id
-    private String name; // Name of the ml model
-    private String type; // Type of the ml model, such as sparkml, scikit-learn, tensorflow, xgboost, dl4j
-    private String category; // Model category, such as classification, recommendation, etc
-    private String description; // Description about model
-    private String path; // The model path in hdfs
-    private String udf; // The spark sql/hive udf name for the model
-    private String createDate; // The creation date for the model
-    private String updateDate; // The creation date for the model
-    private HashMap<String, String> modelInputPara; //ordered input parameters for the model // TODO check if useful
-    private String modelOutputPara; //Output parameters for the model // TODO check if useful
-    private String idTrained; // Job id which trains and persist the model if avaliable
+    /** Id as pk, which is also used as model id. */
+    private String id;
+    /** Name of the ml model. */
+    private String name;
+    /** Type of the ml model, such as sparkml, scikit-learn, tensorflow, xgboost, dl4j. */
+    private String type;
+    /** Model category, such as classification, recommendation, etc. */
+    private String category;
+    /** Description about model. */
+    private String description;
+    /** The model path in hdfs. */
+    private String path;
+    /** The spark sql/hive udf name for the model. */
+    private String udf;
+    /** The creation date for the model. */
+    private String createDate;
+    /** The creation date for the model. */
+    private String updateDate;
+    /** Ordered input parameters for the model // TODO check if useful. */
+    private HashMap<String, String> modelInputPara;
+    /** Output parameters for the model // TODO check if useful. */
+    private String modelOutputPara;
+    /** Job id which trains and persist the model if avaliable. */
+    private String idTrained;
 
     public DFModelPOPJ() {
         this.id = "";
@@ -44,7 +53,7 @@ public class DFModelPOPJ {
         this.idTrained = idTrained;
     }
 
-    // Used by
+    /** Used by. */
     public DFModelPOPJ(JsonObject json) {
         this.id = json.getString("_id");
         this.name = json.getString("name");
@@ -62,7 +71,6 @@ public class DFModelPOPJ {
     }
 
     public JsonObject toJson() {
-
         JsonObject json = new JsonObject()
                 .put("name", name)
                 .put("type", type)
@@ -77,13 +85,13 @@ public class DFModelPOPJ {
                 .put("idTrained", idTrained)
                 ;
 
-        if (id != null && !id.isEmpty())
+        if (id != null && !id.isEmpty()) {
 			json.put("_id", id);
+		}
         return json;
     }
 
     public JsonObject toPostJson() {
-
         JsonObject json = new JsonObject()
                 .put("name", name)
                 .put("type", type)
@@ -98,8 +106,9 @@ public class DFModelPOPJ {
                 .put("idTrained", idTrained)
                 ;
 
-        if (id != null && !id.isEmpty())
+        if (id != null && !id.isEmpty()) {
 			json.put("id", id);
+		}
         return json;
     }
 

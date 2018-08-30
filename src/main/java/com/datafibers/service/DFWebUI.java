@@ -9,12 +9,10 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 public class DFWebUI extends AbstractVerticle {
-
     private static final Logger LOG = Logger.getLogger(DFWebUI.class);
 
     @Override
     public void start() {
-
         // Create a router object for web ui
         Router routerWeb = Router.router(vertx);
 

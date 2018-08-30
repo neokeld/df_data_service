@@ -31,9 +31,7 @@ import org.apache.flink.streaming.util.serialization.SerializationSchema;
 import org.apache.flink.table.api.Types;
 import org.apache.flink.types.Row;
 
-/**
- * Kafka 0.9 {@link KafkaTableSink} that serializes data in JSON format.
- */
+/** Kafka 0.9 {@link KafkaTableSink} that serializes data in JSON format. */
 public class Kafka09AvroTableSink extends KafkaAvroTableSink {
 	/**
 	 * Creates {@link KafkaTableSink} for Kafka 0.9
@@ -57,21 +55,17 @@ public class Kafka09AvroTableSink extends KafkaAvroTableSink {
 		return new Kafka09AvroTableSink(topic, properties, partitioner);
 	}
 
-	
-	@Override
+		@Override
 	protected SerializationSchema<Tuple2<Boolean, Row>> createSerializationSchema(Properties p) {
-		// TODO Auto-generated method stub
 		return new AvroRowSerializationSchema(p);
 	}
 
 	@Override
 	public void setKeyFields(String[] keys) {
-
 	}
 
 	@Override
 	public void setIsAppendOnly(Boolean isAppendOnly) {
-
 	}
 
 	@Override

@@ -31,22 +31,21 @@ import org.slf4j.LoggerFactory;
  */
 @Public
 public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
-
     private static final Logger LOG = LoggerFactory.getLogger(DFRemoteStreamEnvironment.class);
 
-    /** The hostname of the JobManager */
+    /** The hostname of the JobManager. */
     private final String host;
 
-    /** The port of the JobManager main actor system */
+    /** The port of the JobManager main actor system. */
     private final int port;
 
-    /** The configuration used to parametrize the client that connects to the remote cluster */
+    /** The configuration used to parametrize the client that connects to the remote cluster. */
     private final Configuration clientConfiguration;
 
-    /** The jar files that need to be attached to each job */
+    /** The jar files that need to be attached to each job. */
     private final List<URL> jarFiles;
 
-    /** The classpaths that need to be attached to each job */
+    /** The classpaths that need to be attached to each job. */
     private final List<URL> globalClasspaths;
 
     /**
@@ -117,21 +116,24 @@ public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
      *            The protocol must be supported by the {@link java.net.URLClassLoader}.
      */
     public DFRemoteStreamEnvironment(String host, int port, Configuration clientConfiguration, String[] jarFiles, URL[] globalClasspaths) {
-        if (!ExecutionEnvironment.areExplicitEnvironmentsAllowed())
+        if (!ExecutionEnvironment.areExplicitEnvironmentsAllowed()) {
 			throw new InvalidProgramException(
 					"The RemoteEnvironment cannot be used when submitting a program through a client, "
 							+ "or running in a TestEnvironment context.");
+		}
 
-        if (host == null)
+        if (host == null) {
 			throw new NullPointerException("Host must not be null.");
-        if (port < 1 || port >= 0xffff)
+		}
+        if (port < 1 || port >= 0xffff) {
 			throw new IllegalArgumentException("Port out of range");
+		}
 
         this.host = host;
         this.port = port;
         this.clientConfiguration = clientConfiguration == null ? new Configuration() : clientConfiguration;
         this.jarFiles = new ArrayList<>(jarFiles.length);
-        for (String jarFile : jarFiles)
+        for (String jarFile : jarFiles) {
 			try {
 				URL jarFileUrl = new File(jarFile).getAbsoluteFile().toURI().toURL();
 				this.jarFiles.add(jarFileUrl);
@@ -141,12 +143,14 @@ public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
 			} catch (IOException e) {
 				throw new RuntimeException("Problem with jar file " + jarFile, e);
 			}
+		}
         this.globalClasspaths = globalClasspaths == null ? Collections.emptyList() : Arrays.asList(globalClasspaths);
     }
 
     public DFRemoteStreamEnvironment setParallelism(int parallelism) {
-        if (parallelism < 1)
+        if (parallelism < 1) {
 			throw new IllegalArgumentException("parallelism must be at least one.");
+		}
         super.getConfig().setParallelism(parallelism);
         return this;
     }
@@ -182,8 +186,9 @@ public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
 
     protected JobExecutionResult executeRemotely(StreamGraph g, List<URL> jarFiles,
                                                  DFJobPOPJ j) throws ProgramInvocationException {
-        if (LOG.isInfoEnabled())
+        if (LOG.isInfoEnabled()) {
 			LOG.info("Running remotely at {}:{}", host, port);
+		}
 
         ClassLoader usercodeClassLoader = JobWithJars.buildUserCodeClassLoader(jarFiles, globalClasspaths,
                 getClass().getClassLoader());
@@ -215,7 +220,6 @@ public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
             try {
 				client.shutdown();
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
         }
@@ -247,9 +251,7 @@ public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
         return port;
     }
 
-
     public Configuration getClientConfiguration() {
         return clientConfiguration;
     }
 }
-

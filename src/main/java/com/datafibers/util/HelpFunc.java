@@ -20,11 +20,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/**
- * List of help functions to be used for all DF classes.
- */
+/** List of help functions to be used for all DF classes. */
 public class HelpFunc {
-
     static final int max = 1000;
     static final int min = 1;
     static final String underscore = "_";
@@ -32,18 +29,17 @@ public class HelpFunc {
     static final String space = " ";
     static final String colon = ":";
 
-    /**
-     * Loop the enum of ConnectType to add all connects to the list by l
-     */
+    /** Loop the enum of ConnectType to add all connects to the list by l. */
     public static void addSpecifiedConnectTypetoList(List<String> list, String type_regx) {
-
-        for (ConstantApp.DF_CONNECT_TYPE item : ConstantApp.DF_CONNECT_TYPE.values())
-			if (item.name().matches(type_regx))
+        for (ConstantApp.DF_CONNECT_TYPE item : ConstantApp.DF_CONNECT_TYPE.values()) {
+			if (item.name().matches(type_regx)) {
 				list.add(item.name());
+			}
+		}
     }
 
     /**
-     * Return the first not null objects in the list of arguments
+     * Return the first not null objects in the list of arguments.
      * @param a
      * @param b
      * @param <T>
@@ -70,16 +66,19 @@ public class HelpFunc {
         int index = 0, index_found = 0;
         for (String json_key_to_check;;) {
 			json_key_to_check = index != 0 ? key_pattern + index : key_pattern.replace("_", "");
-			if (!json.has(json_key_to_check))
+			if (!json.has(json_key_to_check)) {
 				break;
-			if (!json.getJSONObject(json_key_to_check).has(key_ingored_mark))
+			}
+			if (!json.getJSONObject(json_key_to_check).has(key_ingored_mark)) {
 				index_found = index;
-			else
+			} else {
 				json.remove(json_key_to_check);
+			}
 			++index;
 		}
-        if (index_found > 0)
-            json.put(key_pattern.replace("_", ""), json.getJSONObject(key_pattern + index_found)).remove(key_pattern + index_found);
+        if (index_found > 0) {
+			json.put(key_pattern.replace("_", ""), json.getJSONObject(key_pattern + index_found)).remove(key_pattern + index_found);
+		}
         return json.toString();
     }
 
@@ -91,14 +90,17 @@ public class HelpFunc {
      */
     public static String convertTopicsFromArrayToString(String jsonString, String topicsKeyAliasString) {
         JSONObject json = new JSONObject(jsonString.replaceAll("\\s+?/\\*.*?\\*/", ""));
-        if(json.has("connectorConfig"))
-			for (String topicsKey : topicsKeyAliasString.split(","))
+        if(json.has("connectorConfig")) {
+			for (String topicsKey : topicsKeyAliasString.split(",")) {
 				if (json.getJSONObject("connectorConfig").has(topicsKey)) {
 					Object topicsObj = json.getJSONObject("connectorConfig").get(topicsKey);
-					if (topicsObj instanceof JSONArray)
+					if (topicsObj instanceof JSONArray) {
 						json.getJSONObject("connectorConfig").put(topicsKey,
 								((JSONArray) topicsObj).join(",").replace("\"", ""));
+					}
 				}
+			}
+		}
         return json.toString();
     }
 
@@ -113,7 +115,7 @@ public class HelpFunc {
     }
 
     /**
-     * Generate a file name for the UDF Jar uploaded to avoid naming conflict
+     * Generate a file name for the UDF Jar uploaded to avoid naming conflict.
      * @param inputName
      * @return fileName
      */
@@ -124,9 +126,9 @@ public class HelpFunc {
 
         int randomNum = min + new Random().nextInt(max - min + 1);
 
-        if (inputName == null || inputName.indexOf(period) <= 0)
+        if (inputName == null || inputName.indexOf(period) <= 0) {
 			DateToStr = inputName + underscore + DateToStr + underscore + randomNum;
-		else {
+		} else {
 			int firstPart = inputName.indexOf(period);
 			DateToStr = inputName.substring(0, firstPart) + underscore + DateToStr + underscore + randomNum + "."
 					+ inputName.substring(firstPart + 1);
@@ -136,28 +138,28 @@ public class HelpFunc {
     }
 
     /**
-     * Get the current folder of the running jar file
+     * Get the current folder of the running jar file.
      * @return jarFilePath
      */
     public String getCurrentJarRunnigFolder() {
         String jarPath = getClass().getProtectionDomain().getCodeSource().getLocation().getPath();  // "/home/vagrant/df-data-service-1.0-SNAPSHOT-fat.jar";
-        int i = jarPath.lastIndexOf("/");
+        int i = jarPath.lastIndexOf('/');
 
-        if (i > 0)
+        if (i > 0) {
 			jarPath = jarPath.substring(0, i + 1);
+		}
 
         return jarPath;
     }
 
     /**
-     * Build program parameters for Flink Jar in rest call
+     * Build program parameters for Flink Jar in rest call.
      * @param j
      * @param kafkaRestHostName
      * @param SchemaRegistryRestHostName
      * @return
      */
     public static JsonObject getFlinkJarPara(DFJobPOPJ j, String kafkaRestHostName, String SchemaRegistryRestHostName ) {
-
         String allowNonRestoredState = "false", savepointPath = "", parallelism = "1", entryClass = "",
 				programArgs = "";
         if (j.getConnectorType() == ConstantApp.DF_CONNECT_TYPE.TRANSFORM_EXCHANGE_FLINK_SQLA2A.name()) {
@@ -166,7 +168,7 @@ public class HelpFunc {
                     j.getConnectorConfig().get(ConstantApp.PK_KAFKA_TOPIC_INPUT),
                     j.getConnectorConfig().get(ConstantApp.PK_KAFKA_TOPIC_OUTPUT),
                     j.getConnectorConfig().get(ConstantApp.PK_FLINK_TABLE_SINK_KEYS),
-                    HelpFunc.coalesce(j.getConnectorConfig().get(ConstantApp.PK_KAFKA_CONSUMER_GROURP),
+                    coalesce(j.getConnectorConfig().get(ConstantApp.PK_KAFKA_CONSUMER_GROURP),
                             ConstantApp.DF_TRANSFORMS_KAFKA_CONSUMER_GROUP_ID_FOR_FLINK),
                     // Use 0 as we only support one query in flink
                     "\"" + sqlCleaner(j.getConnectorConfig().get(ConstantApp.PK_TRANSFORM_SQL))[0] + "\"");
@@ -187,17 +189,19 @@ public class HelpFunc {
     }
 
     /**
-     * Find mongo sorting options
+     * Find mongo sorting options.
      * @param c
      * @param sortField
      * @param sortOrderField
      * @return
      */
     public static FindOptions getMongoSortFindOption(RoutingContext c, String sortField, String sortOrderField) {
-        String sortName = HelpFunc.coalesce(c.request().getParam(sortField), "_id");
-        if("id".equalsIgnoreCase(sortName)) sortName = "_" + sortName; //Mongo use _id
+        String sortName = coalesce(c.request().getParam(sortField), "_id");
+        if("id".equalsIgnoreCase(sortName)) {
+			sortName = "_" + sortName;
+		} //Mongo use _id
         return new FindOptions().setSort(new JsonObject().put(sortName,
-				HelpFunc.strCompare(HelpFunc.coalesce(c.request().getParam(sortOrderField), "ASC"), "ASC", 1, -1)));
+				strCompare(coalesce(c.request().getParam(sortOrderField), "ASC"), "ASC", 1, -1)));
     }
 
     public static FindOptions getMongoSortFindOption(RoutingContext c) {
@@ -224,65 +228,75 @@ public class HelpFunc {
      * @return
      */
     public static String getTaskStatusKafka(JSONObject taskStatus) {
-		if (!taskStatus.has("connector"))
+		if (!taskStatus.has("connector")) {
 			return ConstantApp.DF_STATUS.NONE.name();
+		}
 		if (!taskStatus.getJSONObject("connector").getString("state")
-				.equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name()) || !taskStatus.has("tasks"))
+				.equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name()) || !taskStatus.has("tasks")) {
 			return taskStatus.getJSONObject("connector").getString("state");
+		}
 		JSONArray subTask = taskStatus.getJSONArray("tasks");
 		String status = ConstantApp.DF_STATUS.RUNNING.name();
-		for (int i = 0; i < subTask.length(); ++i)
+		for (int i = 0; i < subTask.length(); ++i) {
 			if (!subTask.getJSONObject(i).getString("state").equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name())) {
 				status = ConstantApp.DF_STATUS.RWE.name();
 				break;
 			}
+		}
 		return status;
 	}
 
     public static String getTaskStatusKafka(JsonObject taskStatus) {
-		if (!taskStatus.containsKey("connector"))
+		if (!taskStatus.containsKey("connector")) {
 			return ConstantApp.DF_STATUS.NONE.name();
+		}
 		if (!taskStatus.getJsonObject("connector").getString("state")
-				.equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name()) || !taskStatus.containsKey("tasks"))
+				.equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name()) || !taskStatus.containsKey("tasks")) {
 			return taskStatus.getJsonObject("connector").getString("state");
+		}
 		JsonArray subTask = taskStatus.getJsonArray("tasks");
 		String status = ConstantApp.DF_STATUS.RUNNING.name();
-		for (int i = 0; i < subTask.size(); ++i)
+		for (int i = 0; i < subTask.size(); ++i) {
 			if (!subTask.getJsonObject(i).getString("state").equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name())) {
 				status = ConstantApp.DF_STATUS.RWE.name();
 				break;
 			}
+		}
 		return status;
 	}
 
     /**
-     * Mapping rest state to df status category
+     * Mapping rest state to df status category.
      * @param taskStatus
      * @return
      */
     public static String getTaskStatusFlink(JsonObject taskStatus) {
-		if (!taskStatus.containsKey("state"))
+		if (!taskStatus.containsKey("state")) {
 			return ConstantApp.DF_STATUS.NONE.name();
+		}
 		if (!taskStatus.getString("state").equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name())
-				|| !taskStatus.containsKey("vertices"))
+				|| !taskStatus.containsKey("vertices")) {
 			return taskStatus.getString("state");
+		}
 		JsonArray subTask = taskStatus.getJsonArray("vertices");
 		String status = ConstantApp.DF_STATUS.RUNNING.name();
-		for (int i = 0; i < subTask.size(); ++i)
+		for (int i = 0; i < subTask.size(); ++i) {
 			if (!subTask.getJsonObject(i).getString("status").equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name())) {
 				status = ConstantApp.DF_STATUS.RWE.name();
 				break;
 			}
+		}
 		return status;
 	}
     /**
-     * Mapping livy statement rest state to df status category
+     * Mapping livy statement rest state to df status category.
      * @param taskStatus
      * @return
      */
     public static String getTaskStatusSpark(JsonObject taskStatus) {
-		if (!taskStatus.containsKey("state"))
+		if (!taskStatus.containsKey("state")) {
 			return ConstantApp.DF_STATUS.NONE.name();
+		}
 		String restState = taskStatus.getString("state").toUpperCase(), returnState;
 		switch (restState) {
 		case "RUNNING":
@@ -312,7 +326,7 @@ public class HelpFunc {
 	}
 
     /**
-     * Search the json object in the list of keys contains specified values
+     * Search the json object in the list of keys contains specified values.
      * @param keyRoot
      * @param keyString
      * @param containsValue
@@ -320,15 +334,15 @@ public class HelpFunc {
      */
     public static JsonObject getContainsTopics(String keyRoot, String keyString, String containsValue) {
         JsonArray ja = new JsonArray();
-        for(String key : keyString.split(","))
+        for(String key : keyString.split(",")) {
 			ja.add(new JsonObject().put(keyRoot + "." + key,
 					new JsonObject().put("$regex", ".*" + containsValue + ".*")));
+		}
         return new JsonObject().put("$or", ja);
-
     }
 
     /**
-     * Used to format the livy result to better rich text so that it can show in the web ui better
+     * Used to format the livy result to better rich text so that it can show in the web ui better.
      * @param livyStatementResult
      * @return
      */
@@ -338,36 +352,44 @@ public class HelpFunc {
 				+ ".myOtherTable td, .myOtherTable th { padding:5px;border:0; }"
 				+ ".myOtherTable td { border-bottom:1px dotted #BDB76B; }</style><table class=\"myOtherTable\">",
 				tableTrailer = "</table>", dataRow = "";
-		if (!livyStatementResult.getJsonObject("output").containsKey("data"))
+		if (!livyStatementResult.getJsonObject("output").containsKey("data")) {
 			return "";
+		}
 		JsonObject dataJason = livyStatementResult.getJsonObject("output").getJsonObject("data");
 		if (livyStatementResult.getString("code").contains("%table")) {
 			JsonObject output = dataJason.getJsonObject("application/vnd.livy.table.v1+json");
 			JsonArray header = output.getJsonArray("headers"), data = output.getJsonArray("data");
 			String headerRow = "<tr><th>";
-			if (data.isEmpty())
+			if (data.isEmpty()) {
 				return "";
+			}
 			String separator = "</th><th>";
 			for (int i = 0; i < header.size(); ++i) {
-				if (i == header.size() - 1)
+				if (i == header.size() - 1) {
 					separator = "";
+				}
 				String headerName = header.getJsonObject(i).getString("name");
-				if ("0".equalsIgnoreCase(headerName))
+				if ("0".equalsIgnoreCase(headerName)) {
 					headerName = "result";
+				}
 				headerRow += headerName + separator;
 			}
 			headerRow += "</th></tr>";
-			for (int i = 0; i < data.size(); ++i)
+			for (int i = 0; i < data.size(); ++i) {
 				dataRow += jsonArrayToString(data.getJsonArray(i), "<tr><td>", "</td><td>", "</td></tr>");
+			}
 			return tableHeader + headerRow + dataRow + tableTrailer;
 		}
-		if (!livyStatementResult.getString("code").contains("%json"))
+		if (!livyStatementResult.getString("code").contains("%json")) {
 			return "<pre>" + dataJason.getString("text/plain").trim() + "</pre>";
+		}
 		JsonArray data = dataJason.getJsonArray("application/json");
-		if (data.isEmpty())
+		if (data.isEmpty()) {
 			return "";
-		for (int i = 0; i < data.size(); ++i)
+		}
+		for (int i = 0; i < data.size(); ++i) {
 			dataRow += jsonArrayToString(data.getJsonArray(i), "<tr><td>", "</td><td>", "</td></tr>");
+		}
 		return tableHeader + dataRow + tableTrailer;
 	}
 
@@ -377,14 +399,17 @@ public class HelpFunc {
      * @return string of fields with type
      */
     public static String livyTableResultToAvroFields(JsonObject livyStatementResult, String subject) {
-		if (!livyStatementResult.getJsonObject("output").containsKey("data"))
+		if (!livyStatementResult.getJsonObject("output").containsKey("data")) {
 			return "";
+		}
 		JsonObject dataJason = livyStatementResult.getJsonObject("output").getJsonObject("data");
-		if (!livyStatementResult.getString("code").contains("%table"))
+		if (!livyStatementResult.getString("code").contains("%table")) {
 			return "";
+		}
 		JsonArray header = dataJason.getJsonObject("application/vnd.livy.table.v1+json").getJsonArray("headers");
-		for (int i = 0; i < header.size(); ++i)
+		for (int i = 0; i < header.size(); ++i) {
 			header.getJsonObject(i).put("type", typeHive2Avro(header.getJsonObject(i).getString("type")));
+		}
 		return new JsonObject().put("type", "record").put("name", subject).put("fields", header).toString();
 	}
 
@@ -393,19 +418,20 @@ public class HelpFunc {
     }
 
     /**
-     * Utility to remove dot from json attribute to underscore for web ui
+     * Utility to remove dot from json attribute to underscore for web ui.
      * @param m
      * @return
      */
     public static JsonObject mapToJsonFromHashMapD2U(HashMap<String, String> m) {
         JsonObject json = new JsonObject();
-        for (String key : m.keySet())
+        for (Map.Entry<String, String> entry : m.entrySet()) {
 			json.put(key.replace('.', '_'), m.get(key));
+		}
         return json;
     }
 
     /**
-     * Utility to replace underscore from json attribute to dot for kafka connect
+     * Utility to replace underscore from json attribute to dot for kafka connect.
      * @param m
      * @return
      */
@@ -414,26 +440,28 @@ public class HelpFunc {
     }
 
     /**
-     * Utility to replace underscore from json attribute to dot for kafka connect
+     * Utility to replace underscore from json attribute to dot for kafka connect.
      * @param m
      * @return
      */
     public static JsonObject mapToJsonFromHashMapU2D(HashMap<String, String> m) {
         JsonObject json = new JsonObject();
-        for (String key : m.keySet())
+        for (String key : m.keySet()) {
 			json.put(key.replace('_', '.'), m.get(key));
+		}
         return json;
     }
 
     /**
-     * Utility to extract HashMap from json for DFPOPJ
+     * Utility to extract HashMap from json for DFPOPJ.
      * @param o
      * @return
      */
     public static HashMap<String, String> mapToHashMapFromJson( JsonObject o) {
         HashMap<String, String> hm = new HashMap<>();
-        for (String key : o.fieldNames())
+        for (String key : o.fieldNames()) {
 			hm.put(key, o.getValue(key).toString());
+		}
         return hm;
     }
 
@@ -453,7 +481,7 @@ public class HelpFunc {
     }
 
     /**
-     * Convert string to Json format by remove first " and end " and replace \" to "
+     * Convert string to Json format by remove first " and end " and replace \" to ".
      * @param srcStr String to format
      * @return String formatted
      */
@@ -463,7 +491,7 @@ public class HelpFunc {
 	}
 
     /**
-     * Comparing string ease of lambda expression
+     * Comparing string ease of lambda expression.
      * @param a
      * @param b
      * @param <T>
@@ -474,20 +502,20 @@ public class HelpFunc {
     }
 
     /**
-     * Sort JsonArray when we do not use mongodb
+     * Sort JsonArray when we do not use mongodb.
      * @param c
      * @param jsonArray
      * @return
      */
     public static JSONArray sortJsonArray(RoutingContext c, JSONArray jsonArray) {
-
-        String sortKey = HelpFunc.coalesce(c.request().getParam("_sort"), "id"),
-				sortOrder = HelpFunc.coalesce(c.request().getParam("_order"), "ASC");
+        String sortKey = coalesce(c.request().getParam("_sort"), "id"),
+				sortOrder = coalesce(c.request().getParam("_order"), "ASC");
         JSONArray sortedJsonArray = new JSONArray();
 
         List<JSONObject> jsonValues = new ArrayList<>();
-        for (int i = 0; i < jsonArray.length(); ++i)
+        for (int i = 0; i < jsonArray.length(); ++i) {
 			jsonValues.add(jsonArray.getJSONObject(i));
+		}
         Collections.sort( jsonValues, new Comparator<JSONObject>() {
 
             @Override
@@ -505,13 +533,14 @@ public class HelpFunc {
             }
         });
 
-        for (int i = 0; i < jsonArray.length(); ++i)
+        for (int i = 0; i < jsonArray.length(); ++i) {
 			sortedJsonArray.put(jsonValues.get(i));
+		}
         return sortedJsonArray;
     }
 
     /**
-     * Get input of sql statements and remove comments line, extract \n and extra ;
+     * Get input of sql statements and remove comments line, extract \n and extra ;.
      * @param sqlInput
      * @return array of cleaned sql statement without ;
      */
@@ -519,8 +548,9 @@ public class HelpFunc {
         //Use @ to create extra space and \n for removing comments
         sqlInput = sqlInput.replaceAll("\n", "@\n");
         String cleanedSQL = "";
-        for(String line : sqlInput.split("\n"))
+        for(String line : sqlInput.split("\n")) {
 			cleanedSQL += StringUtils.substringBefore(line, "--");
+		}
         return cleanedSQL.replace("@", " ").split(";");
     }
 
@@ -529,20 +559,23 @@ public class HelpFunc {
      * @return
      */
     public static String sqlToPySpark(String[] sqlList, boolean streamBackFlag, String streamPath) {
-
         String pySparkCode = "";
-        if(!streamPath.startsWith("file://")) streamPath = "file://" + streamPath;
+        if(!streamPath.startsWith("file://")) {
+			streamPath = "file://" + streamPath;
+		}
 
-        for(int i = 0; i < sqlList.length; ++i)
-			if (i != sqlList.length - 1)
+        for(int i = 0; i < sqlList.length; ++i) {
+			if (i != sqlList.length - 1) {
 				pySparkCode += "sqlContext.sql(\"" + sqlList[i] + "\")\n";
-			else {
-				if (streamBackFlag)
+			} else {
+				if (streamBackFlag) {
 					pySparkCode += "sqlContext.sql(\"" + sqlList[i]
 							+ "\").coalesce(1).write.format(\"json\").mode(\"overwrite\").save(\"" + streamPath
 							+ "\")\n";
+				}
 				pySparkCode += "a = sqlContext.sql(\"" + sqlList[i] + "\").show(10)\n%table a";
 			}
+		}
 
         return pySparkCode;
     }
@@ -552,20 +585,23 @@ public class HelpFunc {
      * @return
      */
     public static String sqlToSparkScala(String[] sqlList, boolean streamBackFlag, String streamPath) {
-
         String pySparkCode = "";
-        if(!streamPath.startsWith("file://")) streamPath = "file://" + streamPath;
+        if(!streamPath.startsWith("file://")) {
+			streamPath = "file://" + streamPath;
+		}
 
-        for(int i = 0; i < sqlList.length; ++i)
-			if (i != sqlList.length - 1)
+        for(int i = 0; i < sqlList.length; ++i) {
+			if (i != sqlList.length - 1) {
 				pySparkCode += "spark.sql(\"" + sqlList[i] + "\")\n";
-			else {
-				if (streamBackFlag)
+			} else {
+				if (streamBackFlag) {
 					pySparkCode += "spark.sql(\"" + sqlList[i]
 							+ "\").coalesce(1).write.format(\"json\").mode(\"overwrite\").save(\"" + streamPath
 							+ "\")\n";
+				}
 				pySparkCode += "val a = spark.sql(\"" + sqlList[i] + "\").show()\n";
 			}
+		}
 
         return pySparkCode;
     }
@@ -576,15 +612,17 @@ public class HelpFunc {
      */
     public static String mlGuideToScalaSpark(JsonObject config){
         String code = "";
-        if (!"FEATURE_SRC_FILE".equalsIgnoreCase(config.getString("feature_source")))
+        if (!"FEATURE_SRC_FILE".equalsIgnoreCase(config.getString("feature_source"))) {
 			return code;
+		}
 		code = "val data = spark.read.format(\"libsvm\").load(\"" + config.getString("feature_source_value") + "\")\n"
 				+ "val Array(trainingData, testData) = data.randomSplit(Array("
 				+ Integer.parseInt(config.getString("feature_source_sample")) / 100 + ","
 				+ (1 - Integer.parseInt(config.getString("feature_source_sample")) / 100) + "), seed = 1234L)";
-		if ("ML_CLASS_CLF_NB".equalsIgnoreCase(config.getString("model_class_method")))
+		if ("ML_CLASS_CLF_NB".equalsIgnoreCase(config.getString("model_class_method"))) {
 			code += "\nimport org.apache.spark.ml.classification.NaiveBayes\n"
 					+ "val model = new NaiveBayes().fit(trainingData)";
+		}
 		return code += "\nval predictions = model.transform(data)\npredictions.show()";
     }
 
@@ -598,19 +636,20 @@ public class HelpFunc {
      */
     public static String jsonArrayToString(JsonArray a, String begin, String separator, String end) {
         for (int i = 0; i < a.size(); ++i) {
-            if(i == a.size() - 1) separator = "";
-            begin += a.getValue(i).toString() + separator;
+            if(i == a.size() - 1) {
+				separator = "";
+			}
+            begin += a.getValue(i) + separator;
         }
         return begin + end;
     }
 
     /**
-     * Map hive type (from Livy statement result) to avro schema type
+     * Map hive type (from Livy statement result) to avro schema type.
      * @param hiveType
      * @return type in Avro
      */
     private static String typeHive2Avro(String hiveType) {
-
         String avroType;
         switch (hiveType) {
 		case "NULL_TYPE":
@@ -640,7 +679,7 @@ public class HelpFunc {
     }
 
     /**
-     * Upload Flink client to flink rest server
+     * Upload Flink client to flink rest server.
      * @param postURL
      * @param jarFilePath
      * @return
@@ -659,7 +698,7 @@ public class HelpFunc {
         return !response.containsKey("filename") ? "" : response.getString("filename");
     }
     /**
-     * Helper class to update mongodb status
+     * Helper class to update mongodb status.
      * @param c
      * @param COLLECTION
      * @param updateJob
@@ -669,10 +708,11 @@ public class HelpFunc {
         c.updateCollection(COLLECTION, new JsonObject().put("_id", updateJob.getId()),
                 // The update syntax: {$set, the json object containing the fields to update}
                 new JsonObject().put("$set", updateJob.toJson()), v -> {
-                    if (!v.failed())
+                    if (!v.failed()) {
 						l.info(DFAPIMessage.logResponseMessage(1021, updateJob.getId()));
-					else
+					} else {
 						l.error(DFAPIMessage.logResponseMessage(9003, updateJob.getId() + "cause:" + v.cause()));
+					}
                 }
         );
     }

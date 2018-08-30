@@ -19,7 +19,6 @@ public class CLIParser {
     public String admin_tool = "";
     public String debug_mode = "";
 
-
     public CLIParser(String[] args) {
         this.args = args;
         options.addOption("h", "help", false, "show usage help");
@@ -43,11 +42,14 @@ public class CLIParser {
     public CommandLine parse() {
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
-        if (args == null || args.length == 0) return null;
+        if (args == null || args.length == 0) {
+			return null;
+		}
         try {
             cmd = parser.parse(options, args);
-            if (cmd.hasOption("h"))
-                help();
+            if (cmd.hasOption("h")) {
+				help();
+			}
 
             if (cmd.hasOption("d")) {
                 this.debug_mode = "DEBUG";
@@ -61,19 +63,22 @@ public class CLIParser {
                 LogManager.getLogger(ProcessorTransformSpark.class).setLevel(Level.DEBUG);
             }
 
-            if (cmd.hasOption("m"))
+            if (cmd.hasOption("m")) {
 				this.run_mode = "cluster".equalsIgnoreCase(cmd.getOptionValue("m")) ? "Cluster" : "Standalone";
+			}
 
-            if (cmd.hasOption("u"))
+            if (cmd.hasOption("u")) {
 				this.service_mode = "ui".equalsIgnoreCase(cmd.getOptionValue("u")) ? "WebUI" : "Processor";
+			}
 
-            if (cmd.hasOption("t"))
+            if (cmd.hasOption("t")) {
 				this.test_mode = "TEST_CASE_"
-						+ (!cmd.getOptionValue("t").matches("[-+]?\\d*\\.?\\d+") ? "1" : cmd.getOptionValue("t") + "");
+						+ (!cmd.getOptionValue("t").matches("[-+]?\\d*\\.?\\d+") ? "1" : cmd.getOptionValue("t"));
+			}
 
-            if (cmd.hasOption("a") && cmd.getOptionValue("a") != null)
+            if (cmd.hasOption("a") && cmd.getOptionValue("a") != null) {
 				this.admin_tool = "ADMIN_TOOL_" + cmd.getOptionValue("a");
-
+			}
         } catch (ParseException e) {
             LOG.warn(DFAPIMessage.logResponseMessage(9020, "exception - " + e.getCause()));
             help();
@@ -87,8 +92,9 @@ public class CLIParser {
             return null;
         }
 
-        if(args.length > 0 && args[0].contains("-conf")) // ignore -conf option which is used by vertx config
-            return null;
+        if(args.length > 0 && args[0].contains("-conf")) {
+			return null;
+		}
 
         LOG.info("Starting DataFibers in customized options.");
         LOG.info("run_mode = " + this.run_mode);

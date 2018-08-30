@@ -9,11 +9,8 @@ import org.apache.flink.types.Row;
 
 import java.util.Properties;
 
-/**
- * Kafka {@link StreamTableSource} for Kafka 0.10.
- */
+/** Kafka {@link StreamTableSource} for Kafka 0.10. */
 public class Kafka010AvroTableSource extends KafkaAvroTableSource {
-
     /**
      * Creates a Kafka 0.10 AVRO {@link StreamTableSource}.
      *
@@ -27,7 +24,6 @@ public class Kafka010AvroTableSource extends KafkaAvroTableSource {
             Properties properties,
             String[] fieldNames,
             TypeInformation<?>[] fieldTypes) {
-
         super(topic, properties, fieldNames, fieldTypes);
     }
 
@@ -42,7 +38,6 @@ public class Kafka010AvroTableSource extends KafkaAvroTableSource {
      * <p>properties.setProperty("static.avro.schema", STATIC_USER_SCHEMA); // Schema string when Schema is static. With Static Schema, SchemaRegistry does not have to be used.
      */
     public Kafka010AvroTableSource(String topic, Properties properties) {
-
         super(topic, properties);
     }
 
@@ -59,7 +54,6 @@ public class Kafka010AvroTableSource extends KafkaAvroTableSource {
             Properties properties,
             String[] fieldNames,
             Class<?>[] fieldTypes) {
-
         super(topic, properties, fieldNames, fieldTypes);
     }
 
@@ -67,6 +61,4 @@ public class Kafka010AvroTableSource extends KafkaAvroTableSource {
     FlinkKafkaConsumerBase<Row> getKafkaConsumer(String topic, Properties p, DeserializationSchema<Row> r) {
         return new FlinkKafkaConsumer010<>(topic, r, p);
     }
-
-
 }

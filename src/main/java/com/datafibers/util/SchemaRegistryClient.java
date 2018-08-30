@@ -24,14 +24,14 @@ import java.util.Properties;
 import static org.apache.avro.Schema.Type.RECORD;
 
 public class SchemaRegistryClient {
-
     private static final Logger LOG = Logger.getLogger(SchemaRegistryClient.class);
     public static final String HTTP_HEADER_APPLICATION_JSON_CHARSET = "application/json; charset=utf-8";
     public static final String AVRO_REGISTRY_CONTENT_TYPE = "application/vnd.schemaregistry.v1+json";
 
     public static Schema getSchemaFromRegistry (String schemaUri, String schemaSubject, String schemaVersion) {
-
-        if(schemaVersion == null) schemaVersion = "latest";
+        if(schemaVersion == null) {
+			schemaVersion = "latest";
+		}
         String fullUrl = String.format("%s/subjects/%s/versions/%s", schemaUri, schemaSubject, schemaVersion),
 				schemaString;
 
@@ -40,8 +40,9 @@ public class SchemaRegistryClient {
             StringBuilder response = new StringBuilder();
             String line;
             br = new BufferedReader(new InputStreamReader(new URL(fullUrl).openStream()));
-            while ((line = br.readLine()) != null)
+            while ((line = br.readLine()) != null) {
 				response.append(line);
+			}
 
             schemaString = new ObjectMapper().readValue(response.toString(), JsonNode.class).get("schema").getValueAsText();
 
@@ -54,8 +55,9 @@ public class SchemaRegistryClient {
             ex.printStackTrace();
         } finally {
             try {
-                if (br != null)
-                    br.close();
+                if (br != null) {
+					br.close();
+				}
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -64,9 +66,12 @@ public class SchemaRegistryClient {
     }
 
     public static Schema getSchemaFromRegistrywithDefault (String schemaUri, String schemaSubject, String schemaVersion) {
-        if(!schemaUri.contains("http"))
+        if(!schemaUri.contains("http")) {
 			schemaUri = "http://" + schemaUri;
-        if(schemaVersion == null) schemaVersion = "latest";
+		}
+        if(schemaVersion == null) {
+			schemaVersion = "latest";
+		}
         String fullUrl = String.format("%s/subjects/%s/versions/%s", schemaUri, schemaSubject, schemaVersion),
 				schemaString;
 
@@ -75,8 +80,9 @@ public class SchemaRegistryClient {
             StringBuilder response = new StringBuilder();
             String line;
             br = new BufferedReader(new InputStreamReader(new URL(fullUrl).openStream()));
-            while ((line = br.readLine()) != null)
+            while ((line = br.readLine()) != null) {
 				response.append(line);
+			}
 
             schemaString = new ObjectMapper().readValue(response.toString(), JsonNode.class).get("schema").getValueAsText();
 
@@ -89,8 +95,9 @@ public class SchemaRegistryClient {
             ex.printStackTrace();
         } finally {
             try {
-                if (br != null)
-                    br.close();
+                if (br != null) {
+					br.close();
+				}
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -99,25 +106,25 @@ public class SchemaRegistryClient {
     }
 
     public static Schema getVersionedSchemaFromProperty (Properties p, String schemaVersion) {
-
         String schemaUri = "http://"
-				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry") + ""), schemaSubject = "";
-        if (p.getProperty("schema.subject") != null)
+				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry")), schemaSubject = "";
+        if (p.getProperty("schema.subject") != null) {
 			schemaSubject = p.getProperty("schema.subject");
-		else
+		} else {
 			LOG.error("schema.subject must be set in the property");
+		}
 
         return getSchemaFromRegistry(schemaUri, schemaSubject, schemaVersion);
     }
 
     public static String getLatestSchemaNodeFromProperty (Properties p) {
-
         String schemaUri = "http://"
-				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry") + ""), schemaSubject = "";
-        if (p.getProperty("schema.subject") != null)
+				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry")), schemaSubject = "";
+        if (p.getProperty("schema.subject") != null) {
 			schemaSubject = p.getProperty("schema.subject");
-		else
+		} else {
 			LOG.error("schema.subject must be set in the property");
+		}
 
         String schemaVersion = "latest",
 				fullUrl = String.format("%s/subjects/%s/versions/%s", schemaUri, schemaSubject, schemaVersion),
@@ -127,8 +134,9 @@ public class SchemaRegistryClient {
         	StringBuilder response = new StringBuilder();
         	String line;
         	br = new BufferedReader(new InputStreamReader(new URL(fullUrl).openStream()));
-        	while ((line = br.readLine()) != null)
+        	while ((line = br.readLine()) != null) {
 				response.append(line);
+			}
 
         	schemaString = new ObjectMapper().readValue(response.toString(), JsonNode.class).get("schema").getValueAsText();
         	LOG.warn("schemaString: " + schemaString);
@@ -137,8 +145,9 @@ public class SchemaRegistryClient {
             ex.printStackTrace();
         } finally {
             try {
-                if (br != null)
-                    br.close();
+                if (br != null) {
+					br.close();
+				}
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -147,25 +156,25 @@ public class SchemaRegistryClient {
         }
 
     public static Schema getLatestSchemaFromProperty (Properties p, String schemaSubjectAttributeName) {
-
         String schemaUri = "http://"
-				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry") + ""), schemaSubject = "";
-        if (p.getProperty(schemaSubjectAttributeName) == null)
-			LOG.error("schema.subject must be set in the property");
-		else
+				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry")), schemaSubject = "";
+        if (p.getProperty(schemaSubjectAttributeName) != null) {
 			schemaSubject = p.getProperty(schemaSubjectAttributeName);
+		} else {
+			LOG.error("schema.subject must be set in the property");
+		}
 
         return getSchemaFromRegistry(schemaUri, schemaSubject, "latest");
     }
 
     public static Schema getLatestSchemaFromProperty (Properties p) {
-
         String schemaUri = "http://"
-				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry") + ""), schemaSubject = "";
-        if (p.getProperty("schema.subject") != null)
+				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry")), schemaSubject = "";
+        if (p.getProperty("schema.subject") != null) {
 			schemaSubject = p.getProperty("schema.subject");
-		else
+		} else {
 			LOG.error("schema.subject must be set in the property");
+		}
 
         return getSchemaFromRegistry(schemaUri, schemaSubject, "latest");
     }
@@ -174,7 +183,7 @@ public class SchemaRegistryClient {
 		String schemaUri, schemaSubject = "";
 		int schemaId = 0;
 		schemaUri = "http://"
-				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry") + "");
+				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry"));
 		if (p.getProperty(schemaSubjectAttributeName) == null) {
 			LOG.error("schema.subject must be set in the property");
 			return -1;
@@ -187,15 +196,17 @@ public class SchemaRegistryClient {
 			StringBuilder response = new StringBuilder();
 			String line;
 			br = new BufferedReader(new InputStreamReader(new URL(fullUrl).openStream()));
-			while ((line = br.readLine()) != null)
+			while ((line = br.readLine()) != null) {
 				response.append(line);
+			}
 			schemaId = new ObjectMapper().readValue(response.toString(), JsonNode.class).get("id").getValueAsInt();
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		} finally {
 			try {
-				if (br != null)
+				if (br != null) {
 					br.close();
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -204,43 +215,47 @@ public class SchemaRegistryClient {
 	}
 
     public static String[] getFieldNames (Schema s) {
-
-        List<String> stringList = new ArrayList<String>();
-        if (RECORD.equals(s.getType()) && s.getFields() != null && !s.getFields().isEmpty())
-			for (org.apache.avro.Schema.Field field : s.getFields())
+        List<String> stringList = new ArrayList<>();
+        if (RECORD.equals(s.getType()) && s.getFields() != null && !s.getFields().isEmpty()) {
+			for (Schema.Field field : s.getFields()) {
 				stringList.add(field.name());
+			}
+		}
         return stringList.toArray(new String[] {});
     }
 
     public static String[] getFieldNamesFromProperty (Properties p) {
         Schema schema = getLatestSchemaFromProperty(p);
 
-        List<String> stringList = new ArrayList<String>();
-        if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
-			for (org.apache.avro.Schema.Field field : schema.getFields())
+        List<String> stringList = new ArrayList<>();
+        if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
+			for (Schema.Field field : schema.getFields()) {
 				stringList.add(field.name());
+			}
+		}
         return stringList.toArray(new String[] {});
     }
 
     public static String[] getFieldNamesFromProperty (Properties p, String schemaSubjectAttributeName) {
         Schema schema = getLatestSchemaFromProperty(p, schemaSubjectAttributeName);
 
-        List<String> stringList = new ArrayList<String>();
-        if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
-			for (org.apache.avro.Schema.Field field : schema.getFields())
+        List<String> stringList = new ArrayList<>();
+        if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
+			for (Schema.Field field : schema.getFields()) {
 				stringList.add(field.name());
+			}
+		}
         return stringList.toArray(new String[] {});
     }
 
     public static Class<?>[] getFieldTypes (Schema s) {
-
         Class<?>[] fieldTypes = new Class[s.getFields().size()];
         int index = 0;
         String typeName;
 
         try {
-            if (RECORD.equals(s.getType()) && s.getFields() != null && !s.getFields().isEmpty())
-				for (org.apache.avro.Schema.Field field : s.getFields()) {
+            if (RECORD.equals(s.getType()) && s.getFields() != null && !s.getFields().isEmpty()) {
+				for (Schema.Field field : s.getFields()) {
 					typeName = field.schema().getType().getName().toLowerCase();
 					switch (typeName) {
 					case "boolean":
@@ -260,6 +275,7 @@ public class SchemaRegistryClient {
 					}
 					++index;
 				}
+			}
         } catch (ClassNotFoundException cnf) {
             cnf.printStackTrace();
         }
@@ -268,7 +284,6 @@ public class SchemaRegistryClient {
     }
 
     public static Class<?>[] getFieldTypesFromProperty (Properties p) {
-
         Schema schema = getLatestSchemaFromProperty(p);
 
         Class<?>[] fieldTypes = new Class[schema.getFields().size()];
@@ -276,8 +291,8 @@ public class SchemaRegistryClient {
         String typeName;
 
         try {
-            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
-				for (org.apache.avro.Schema.Field field : schema.getFields()) {
+            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
+				for (Schema.Field field : schema.getFields()) {
 					typeName = field.schema().getType().getName().toLowerCase();
 					switch (typeName) {
 					case "boolean":
@@ -297,6 +312,7 @@ public class SchemaRegistryClient {
 					}
 					++index;
 				}
+			}
         } catch (ClassNotFoundException cnf) {
             cnf.printStackTrace();
         }
@@ -305,7 +321,6 @@ public class SchemaRegistryClient {
     }
 
     public static Class<?>[] getFieldTypesFromProperty (Properties p, String schemaSubjectAttributeName) {
-
         Schema schema = getLatestSchemaFromProperty(p, schemaSubjectAttributeName);
 
         Class<?>[] fieldTypes = new Class[schema.getFields().size()];
@@ -313,8 +328,8 @@ public class SchemaRegistryClient {
         String typeName;
 
         try {
-            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
-				for (org.apache.avro.Schema.Field field : schema.getFields()) {
+            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
+				for (Schema.Field field : schema.getFields()) {
 					typeName = field.schema().getType().getName().toLowerCase();
 					switch (typeName) {
 					case "boolean":
@@ -334,6 +349,7 @@ public class SchemaRegistryClient {
 					}
 					++index;
 				}
+			}
         } catch (ClassNotFoundException cnf) {
             cnf.printStackTrace();
         }
@@ -342,7 +358,6 @@ public class SchemaRegistryClient {
     }
 
     public static TypeInformation<?>[] getFieldTypesInfoFromProperty (Properties p) {
-
         Schema schema = getLatestSchemaFromProperty(p);
 
         TypeInformation<?>[] fieldTypes = new TypeInformation[schema.getFields().size()];
@@ -350,8 +365,8 @@ public class SchemaRegistryClient {
         String typeName;
 
         try {
-            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
-				for (org.apache.avro.Schema.Field field : schema.getFields()) {
+            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
+				for (Schema.Field field : schema.getFields()) {
 					typeName = field.schema().getType().getName().toLowerCase();
 					switch (typeName) {
 					case "boolean":
@@ -372,6 +387,7 @@ public class SchemaRegistryClient {
 					}
 					++index;
 				}
+			}
         } catch (ClassNotFoundException cnf) {
             cnf.printStackTrace();
         }
@@ -380,7 +396,6 @@ public class SchemaRegistryClient {
     }
 
     public static TypeInformation<?>[] getFieldTypesInfoFromProperty (Properties p, String schemaSubjectAttributeName) {
-
         Schema schema = getLatestSchemaFromProperty(p, schemaSubjectAttributeName);
 
         TypeInformation<?>[] fieldTypes = new TypeInformation[schema.getFields().size()];
@@ -388,8 +403,8 @@ public class SchemaRegistryClient {
         String typeName;
 
         try {
-            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
-				for (org.apache.avro.Schema.Field field : schema.getFields()) {
+            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
+				for (Schema.Field field : schema.getFields()) {
 					typeName = field.schema().getType().getName().toLowerCase();
 					switch (typeName) {
 					case "boolean":
@@ -410,6 +425,7 @@ public class SchemaRegistryClient {
 					}
 					++index;
 				}
+			}
         } catch (ClassNotFoundException cnf) {
             cnf.printStackTrace();
         }
@@ -418,19 +434,18 @@ public class SchemaRegistryClient {
     }
 
     public static void addSchemaIfNotAvailable(Properties p) {
-
         String schemaUri, subject = p.getProperty(ConstantApp.PK_SCHEMA_SUB_OUTPUT),
 				schemaString = p.getProperty(ConstantApp.PK_SCHEMA_STR_OUTPUT),
 				srKey = ConstantApp.PK_KAFKA_SCHEMA_REGISTRY_HOST_PORT.replace("_", ".");
-        schemaUri = "http://" + (p.getProperty(srKey) == null ? "localhost:8081" : p.getProperty(srKey) + "");
+        schemaUri = "http://" + (p.getProperty(srKey) == null ? "localhost:8081" : p.getProperty(srKey));
 
         String schemaRegistryRestURL = schemaUri + "/subjects/" + subject + "/versions";
 
         try {
             if (Unirest.get(schemaRegistryRestURL + "/latest").header("accept", HTTP_HEADER_APPLICATION_JSON_CHARSET)
-					.asString().getStatus() != ConstantApp.STATUS_CODE_NOT_FOUND)
+					.asString().getStatus() != ConstantApp.STATUS_CODE_NOT_FOUND) {
 				LOG.info("Subject - " + subject + " Found.");
-			else {
+			} else {
 				Unirest.post(schemaRegistryRestURL).header("accept", HTTP_HEADER_APPLICATION_JSON_CHARSET)
 						.header("Content-Type", AVRO_REGISTRY_CONTENT_TYPE).body(schemaString).asString();
 				LOG.info("Subject - " + subject + " Not Found, so create it.");
@@ -441,12 +456,13 @@ public class SchemaRegistryClient {
     }
 
     public static void addSchemaFromTableResult(String schemaUri, String subject, Table result) {
-
-        if (schemaUri == null)
+        if (schemaUri == null) {
 			schemaUri = "http://localhost:8081";
+		}
 
-        if(!schemaUri.startsWith("http"))
+        if(!schemaUri.startsWith("http")) {
 			schemaUri = "http://" + schemaUri;
+		}
 
         String schemaRegistryRestURL = schemaUri + "/subjects/" + subject + "/versions";
 
@@ -455,9 +471,9 @@ public class SchemaRegistryClient {
                     .header("accept", HTTP_HEADER_APPLICATION_JSON_CHARSET)
                     .asString();
 
-            if (schemaRes.getStatus() != ConstantApp.STATUS_CODE_NOT_FOUND)
+            if (schemaRes.getStatus() != ConstantApp.STATUS_CODE_NOT_FOUND) {
 				LOG.info("Subject - " + subject + " Found.");
-			else {
+			} else {
 				schemaRes = Unirest.post(schemaRegistryRestURL).header("accept", HTTP_HEADER_APPLICATION_JSON_CHARSET)
 						.header("Content-Type", AVRO_REGISTRY_CONTENT_TYPE)
 						.body(tableAPIToAvroSchema(result, subject.replaceAll("-value", ""))).asString();
@@ -470,16 +486,15 @@ public class SchemaRegistryClient {
 
     public static String tableAPIToAvroSchema(Table result, String subject) {
         JsonArray fields = new JsonArray();
-        for(String colName : result.getSchema().getColumnNames())
+        for(String colName : result.getSchema().getColumnNames()) {
 			fields.add(new JsonObject().put("name", colName).put("type",
 					tableTypeToAvroType(result.getSchema().getType(colName).toString())));
+		}
 
         return new JsonObject().put("schema", new JsonObject()
                 .put("type", "record")
                 .put("name", subject)
                 .put("fields", fields).toString()).toString();
-
-
     }
 
     public static String tableTypeToAvroType(String type) {
@@ -508,6 +523,4 @@ public class SchemaRegistryClient {
         }
         return returnType;
     }
-
-
 }

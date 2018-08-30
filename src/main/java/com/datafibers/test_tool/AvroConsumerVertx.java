@@ -11,16 +11,13 @@ package com.datafibers.test_tool;
         import java.util.ArrayList;
         import java.util.Properties;
 
-
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 public class AvroConsumerVertx extends AbstractVerticle {
-
     public static void main(String[] args) {
         Vertx.vertx().deployVerticle(new AvroConsumerVertx());
     }
-
 
     @Override
     public void start() throws Exception {
@@ -37,9 +34,7 @@ public class AvroConsumerVertx extends AbstractVerticle {
 
         KafkaConsumer<String, String> consumer = KafkaConsumer.create(vertx, props);
         new ArrayList<JsonObject>();
-		
-
-//        consumer.handler(record -> {// TODO handler does not work
+		//        consumer.handler(record -> {// TODO handler does not work
 //            System.out.println("Processing value=" + record.record().value() +
 //                    ",partition=" + record.record().partition() + ",offset=" + record.record().offset());
 //            responseList.add(new JsonObject()
@@ -51,7 +46,6 @@ public class AvroConsumerVertx extends AbstractVerticle {
 //                consumer.close();
 //            }
 //        });
-//
 //        // Subscribe to a single topic
 //        consumer.subscribe(topic, ar -> {
 //            if (ar.succeeded()) {
@@ -62,17 +56,15 @@ public class AvroConsumerVertx extends AbstractVerticle {
 //        });
 
         consumer.partitionsFor(topic, ar -> {
-
-            if (ar.succeeded())
-				for (PartitionInfo partitionInfo : ar.result())
+            if (ar.succeeded()) {
+				for (PartitionInfo partitionInfo : ar.result()) {
 					System.out.println(partitionInfo);
+				}
+			}
         });
-
     }
 
     @Override
     public void stop() throws Exception {
-
     }
 }
-

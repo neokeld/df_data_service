@@ -20,7 +20,6 @@ import org.apache.flink.util.Preconditions;
  * override {@link #getKafkaConsumer(String, Properties, DeserializationSchema)}}.
  */
 abstract class KafkaTableSource implements StreamTableSource<Row> {
-
     /** The Kafka topic to consume. */
 	protected final String topic;
 
@@ -52,7 +51,6 @@ abstract class KafkaTableSource implements StreamTableSource<Row> {
 			Properties properties,
 			DeserializationSchema<Row> deserializationSchema,
 			TypeInformation<Row> typeInfo) {
-
 		this.topic = Preconditions.checkNotNull(topic, "Topic");
 		this.properties = Preconditions.checkNotNull(properties, "Properties");
 		this.deserializationSchema = Preconditions.checkNotNull(deserializationSchema, "Deserialization schema");
@@ -60,8 +58,7 @@ abstract class KafkaTableSource implements StreamTableSource<Row> {
 		this.fieldTypes = null;
 		this.fieldNames = null;
 	}
-	
-	/**
+		/**
      * Creates a generic Kafka {@link StreamTableSource}.
      *
      * @param topic                 Kafka topic to consume.
@@ -76,7 +73,6 @@ abstract class KafkaTableSource implements StreamTableSource<Row> {
             DeserializationSchema<Row> deserializationSchema,
             String[] fieldNames,
             Class<?>[] fieldTypes) {
-
         this(topic, properties, deserializationSchema, fieldNames, toTypeInfo(fieldTypes));
     }
 
@@ -95,7 +91,6 @@ abstract class KafkaTableSource implements StreamTableSource<Row> {
             DeserializationSchema<Row> deserializationSchema,
             String[] fieldNames,
             TypeInformation<?>[] fieldTypes) {
-
         this.topic = Preconditions.checkNotNull(topic, "Topic");
         this.properties = Preconditions.checkNotNull(properties, "Properties");
         this.deserializationSchema = Preconditions.checkNotNull(deserializationSchema, "Deserialization schema");
@@ -104,8 +99,7 @@ abstract class KafkaTableSource implements StreamTableSource<Row> {
 
         Preconditions.checkArgument(fieldNames.length == fieldTypes.length,
                 "Number of provided field names and types does not match.");
-        
-        this.typeInfo = new RowTypeInfo(fieldTypes, fieldNames);
+                this.typeInfo = new RowTypeInfo(fieldTypes, fieldNames);
     }
 
     @Override
@@ -113,23 +107,22 @@ abstract class KafkaTableSource implements StreamTableSource<Row> {
         return e.addSource(getKafkaConsumer(topic, properties, deserializationSchema));
     }
 
-  
-    //@Override
+      /** @Override */
     public int getNumberOfFields() {
         return fieldNames.length;
     }
 
-   // @Override
+   /** @Override */
     public String[] getFieldsNames() {
         return fieldNames;
     }
 
-   // @Override
+   /** @Override */
     public TypeInformation<?>[] getFieldTypes() {
         return fieldTypes;
     }
 
-    //@Override
+    /** @Override */
     public TypeInformation<Row> getReturnType() {
         return new RowTypeInfo(fieldTypes, fieldNames);
     }
@@ -156,16 +149,14 @@ abstract class KafkaTableSource implements StreamTableSource<Row> {
         return deserializationSchema;
     }
 
-    /**
-     * Creates TypeInformation array for an array of Classes.
-     */
+    /** Creates TypeInformation array for an array of Classes. */
     protected static TypeInformation<?>[] toTypeInfo(Class<?>[] fieldTypes) {
         TypeInformation<?>[] typeInfos = new TypeInformation[fieldTypes.length];
-        for (int i = 0; i < fieldTypes.length; ++i)
+        for (int i = 0; i < fieldTypes.length; ++i) {
 			typeInfos[i] = TypeExtractor.getForClass(fieldTypes[i]);
+		}
         return typeInfos;
     }
-
 
 	@Override
 	public String explainSource() {

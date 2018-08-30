@@ -18,9 +18,7 @@ import com.datafibers.util.DynamicRunner;
  * This function will dynamically generate code and run.
  */
 public class CodeGenFlinkTable {
-
 	public static void main(String args[]) {
-
 		String transform2 = "select(\"name\");\n",
 				header = "package dynamic;\nimport org.apache.flink.api.table.Table;\nimport com.datafibers.util.*;\n",
 				javaCode2 = header + "public class FlinkScript implements DynamicRunner {\n@Override \n"
@@ -39,7 +37,6 @@ public class CodeGenFlinkTable {
 			((DynamicRunner) CompilerUtils.CACHED_COMPILER.loadFromJava("dynamic.FlinkScript", javaCode2).newInstance())
 					.transTableObj(ingest).writeToSink(sink);
 			env.execute();
-
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

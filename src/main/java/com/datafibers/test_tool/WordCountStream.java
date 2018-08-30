@@ -12,10 +12,7 @@ import org.apache.flink.table.sources.CsvTableSource;
  * This function will dynamically generate code and run.
  */
 public class WordCountStream {
-
-
 	public static void main(String args[]) {
-
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
 
@@ -25,13 +22,10 @@ public class WordCountStream {
 		tableEnv.registerTableSource("mycsv", new CsvTableSource("/Users/will/Downloads/file.csv", new String[] { "name", "id", "score", "comments" },
 				new TypeInformation<?>[] { Types.STRING(), Types.STRING(), Types.STRING(), Types.STRING() }));
 
-
-
 		tableEnv.scan("mycsv").select("name").writeToSink(new CsvTableSink("/Users/will/Downloads/out.csv", "|"));
 		try {
 			env.execute();
 		} catch (Exception e) {
-
 		}
 
 		System.out.print("DONE");

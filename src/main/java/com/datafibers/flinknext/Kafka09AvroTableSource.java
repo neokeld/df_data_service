@@ -8,11 +8,8 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
 import org.apache.flink.table.sources.StreamTableSource;
 import org.apache.flink.types.Row;
-/**
- * Kafka {@link StreamTableSource} for Kafka 0.9.
- */
+/** Kafka {@link StreamTableSource} for Kafka 0.9. */
 public class Kafka09AvroTableSource extends KafkaAvroTableSource {
-
     /**
      * Creates a Kafka 0.9 AVRO {@link StreamTableSource}.
      *
@@ -26,7 +23,6 @@ public class Kafka09AvroTableSource extends KafkaAvroTableSource {
             Properties properties,
             String[] fieldNames,
             TypeInformation<?>[] fieldTypes) {
-
         super(topic, properties, fieldNames, fieldTypes);
     }
 
@@ -41,7 +37,6 @@ public class Kafka09AvroTableSource extends KafkaAvroTableSource {
      * <p>properties.setProperty("static.avro.schema", STATIC_USER_SCHEMA); // Schema string when Schema is static. With Static Schema, SchemaRegistry does not have to be used.
      */
     public Kafka09AvroTableSource(String topic, Properties properties) {
-
         super(topic, properties);
     }
 
@@ -58,7 +53,6 @@ public class Kafka09AvroTableSource extends KafkaAvroTableSource {
             Properties properties,
             String[] fieldNames,
             Class<?>[] fieldTypes) {
-
         super(topic, properties, fieldNames, fieldTypes);
     }
 
@@ -66,6 +60,4 @@ public class Kafka09AvroTableSource extends KafkaAvroTableSource {
     FlinkKafkaConsumerBase<Row> getKafkaConsumer(String topic, Properties p, DeserializationSchema<Row> r) {
         return new FlinkKafkaConsumer09<>(topic, r, p);
     }
-
-
 }

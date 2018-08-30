@@ -46,8 +46,7 @@ import org.log4mongo.MongoDbAppender;
  */
 
 public class DFDataProcessor extends AbstractVerticle {
-
-    // Generic attributes
+    /** Generic attributes. */
     public String COLLECTION;
     public String COLLECTION_MODEL;
     public String COLLECTION_INSTALLED;
@@ -67,49 +66,45 @@ public class DFDataProcessor extends AbstractVerticle {
 
     private Integer df_rest_port;
 
-    // Connects attributes
+    /** Connects attributes. */
     private Boolean kafkaConnectEnabled;
     private String kafka_connect_rest_host;
     private Integer kafka_connect_rest_port;
     private Boolean kafka_connect_import_start;
 
-    // Transforms attributes flink
+    /** Transforms attributes flink. */
     public Boolean transform_engine_flink_enabled;
     private String flink_server_host;
     private Integer flink_rest_server_port;
     private String flink_rest_server_host_port;
 
-    // Transforms attributes spark
+    /** Transforms attributes spark. */
     public Boolean transform_engine_spark_enabled;
     private String spark_livy_server_host;
     private Integer spark_livy_server_port;
 
-    // Kafka attributes
+    /** Kafka attributes. */
     private String kafka_server_host;
     private Integer kafka_server_port;
     public String kafka_server_host_and_port;
 
-    // Schema Registry attributes
+    /** Schema Registry attributes. */
     private String schema_registry_host_and_port;
     private Integer schema_registry_rest_port;
     private String schema_registry_rest_hostname;
 
-    // Web HDFS attributes
+    /** Web HDFS attributes. */
     private Integer webhdfs_rest_port;
     private String webhdfs_rest_hostname;
-
 
     private static final Logger LOG = Logger.getLogger(DFDataProcessor.class);
 
     @Override
     public void start(Future<Void> v) {
-
         this.df_jar_path = getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
         this.df_jar_name = new File(df_jar_path).getName();
 
-        /**
-         * Get all application configurations
-         **/
+        /* Get all application configurations */
         // Get generic variables
         this.COLLECTION = config().getString("db.collection.name", "df_processor");
         this.COLLECTION_MODEL = config().getString("db.collection_model.name", "df_model");
@@ -144,7 +139,7 @@ public class DFDataProcessor extends AbstractVerticle {
         // Kafka config
         this.kafka_server_host = this.kafka_connect_rest_host;
         this.kafka_server_port = config().getInteger("kafka.server.port", 9092);
-        this.kafka_server_host_and_port = this.kafka_server_host + ":" + this.kafka_server_port.toString();
+        this.kafka_server_host_and_port = this.kafka_server_host + ":" + this.kafka_server_port;
 
         // Schema Registry
         this.schema_registry_rest_hostname = kafka_connect_rest_host;
@@ -155,18 +150,17 @@ public class DFDataProcessor extends AbstractVerticle {
         this.webhdfs_rest_port = config().getInteger("webhdfs.server.port", 50070);
         this.webhdfs_rest_hostname = config().getString("webhdfs.server.host", "localhost");
 
-
         // Application init in separate thread and report complete once done
         vertx.executeBlocking(future -> {
-
             mongo = MongoClient.createShared(vertx, new JsonObject().put("connection_string", repoConnStr).put("db_name", repoDb));
 
             // df_meta mongo client to find default connector.class
             mongoDFInstalled = new MongoAdminClient(repoHostname, repoPort, repoDb, COLLECTION_INSTALLED);
 
             // Cleanup Log in mongodb
-            if (config().getBoolean("db.log.cleanup.on.start", Boolean.TRUE))
-                new MongoAdminClient(repoHostname, repoPort, repoDb).truncateCollection(COLLECTION_LOG).close();
+            if (config().getBoolean("db.log.cleanup.on.start", Boolean.TRUE)) {
+				new MongoAdminClient(repoHostname, repoPort, repoDb).truncateCollection(COLLECTION_LOG).close();
+			}
 
             // Set dynamic logging to MongoDB
             MongoDbAppender mongoAppender = new MongoDbAppender();
@@ -193,8 +187,9 @@ public class DFDataProcessor extends AbstractVerticle {
             }
 
             // Non-blocking Rest API Client to talk to Flink Rest when needed
-            if (this.transform_engine_spark_enabled)
+            if (this.transform_engine_spark_enabled) {
 				this.wc_spark = WebClient.create(vertx);
+			}
 
             // Non-blocking Rest API Client to talk to Flink Rest when needed
             if (this.transform_engine_flink_enabled) {
@@ -202,24 +197,26 @@ public class DFDataProcessor extends AbstractVerticle {
                 // Delete all df jars already uploaded
                 wc_flink.get(flink_rest_server_port, flink_server_host, ConstantApp.FLINK_REST_URL_JARS)
                         .send(ar -> {
-                            if (!ar.succeeded())
+                            if (!ar.succeeded()) {
 								LOG.error(DFAPIMessage.logResponseMessage(9035, flink_jar_id));
-							else {
+							} else {
 								JsonArray jarArray = ar.result().bodyAsJsonObject().getJsonArray("files");
-								for (int i = 0; i < jarArray.size(); ++i)
-									if (jarArray.getJsonObject(i).getString("name").equalsIgnoreCase(df_jar_name))
+								for (int i = 0; i < jarArray.size(); ++i) {
+									if (jarArray.getJsonObject(i).getString("name").equalsIgnoreCase(df_jar_name)) {
 										wc_flink.delete(flink_rest_server_port, flink_server_host,
 												ConstantApp.FLINK_REST_URL_JARS + "/"
 														+ jarArray.getJsonObject(i).getString("id"))
 												.send(dar -> {
 												});
+									}
+								}
 								vertx.executeBlocking(jarfuture -> {
 									this.flink_jar_id = HelpFunc.uploadJar(
 											flink_rest_server_host_port + ConstantApp.FLINK_REST_URL_JARS_UPLOAD,
 											this.df_jar_path);
-									if (flink_jar_id.isEmpty())
+									if (flink_jar_id.isEmpty()) {
 										LOG.error(DFAPIMessage.logResponseMessage(9035, flink_jar_id));
-									else {
+									} else {
 										LOG.info(DFAPIMessage.logResponseMessage(1028, flink_jar_id));
 										LOG.info("********* DataFibers Services is started :) *********");
 									}
@@ -229,9 +226,9 @@ public class DFDataProcessor extends AbstractVerticle {
                         });
             }
 
-            if (!this.transform_engine_flink_enabled)
-                LOG.info("********* DataFibers Services is started :) *********");
-
+            if (!this.transform_engine_flink_enabled) {
+				LOG.info("********* DataFibers Services is started :) *********");
+			}
         }, res -> {});
 
         // Regular update Kafka connects/Flink transform status through unblocking api
@@ -239,9 +236,15 @@ public class DFDataProcessor extends AbstractVerticle {
         this.wc_streamback = WebClient.create(vertx);
 
         vertx.setPeriodic(ConstantApp.REGULAR_REFRESH_STATUS_TO_REPO, id -> {
-            if(this.kafkaConnectEnabled) updateKafkaConnectorStatus();
-            if(this.transform_engine_flink_enabled) updateFlinkJobStatus();
-            if(this.transform_engine_spark_enabled) updateSparkJobStatus();
+            if(this.kafkaConnectEnabled) {
+				updateKafkaConnectorStatus();
+			}
+            if(this.transform_engine_flink_enabled) {
+				updateFlinkJobStatus();
+			}
+            if(this.transform_engine_spark_enabled) {
+				updateSparkJobStatus();
+			}
         });
 
         // Start Core application
@@ -249,7 +252,6 @@ public class DFDataProcessor extends AbstractVerticle {
     }
 
     private void startWebApp(Handler<AsyncResult<HttpServer>> next) {
-
         // Create a router object for rest.
         Router router = Router.router(vertx);
 
@@ -302,8 +304,7 @@ public class DFDataProcessor extends AbstractVerticle {
         router.get(ConstantApp.DF_SCHEMA_REST_URL).handler(this::getAllSchemas); // Schema Registry Forward
         router.get(ConstantApp.DF_SCHEMA_REST_URL_WITH_ID).handler(this::getOneSchema); // Schema Registry Forward
         router.route(ConstantApp.DF_SCHEMA_REST_URL_WILD).handler(BodyHandler.create()); // Schema Registry Forward
-        
-        router.post(ConstantApp.DF_SCHEMA_REST_URL).handler(this::addOneSchema); // Schema Registry Forward
+                router.post(ConstantApp.DF_SCHEMA_REST_URL).handler(this::addOneSchema); // Schema Registry Forward
         router.put(ConstantApp.DF_SCHEMA_REST_URL_WITH_ID).handler(this::updateOneSchema); // Schema Registry Forward
         router.delete(ConstantApp.DF_SCHEMA_REST_URL_WITH_ID).handler(this::deleteOneSchema); // Schema Registry Forward
 
@@ -349,17 +350,17 @@ public class DFDataProcessor extends AbstractVerticle {
         // Process History
         router.options(ConstantApp.DF_PROCESS_HIST_REST_URL).handler(this::corsHandle);
         router.get(ConstantApp.DF_PROCESS_HIST_REST_URL).handler(this::getAllProcessHistory);
-        
-        // Create the HTTP server and pass the "accept" method to the request handler.
+                // Create the HTTP server and pass the "accept" method to the request handler.
         vertx.createHttpServer().requestHandler(router::accept)
                                 .listen(config().getInteger("rest.port.df.processor", 8080), next::handle);
     }
 
     private void completeStartup(AsyncResult<HttpServer> s, Future<Void> v) {
-        if (s.succeeded())
+        if (s.succeeded()) {
 			v.complete();
-		else
+		} else {
 			v.fail(s.cause());
+		}
     }
 
     @Override
@@ -410,7 +411,6 @@ public class DFDataProcessor extends AbstractVerticle {
      *       "code" : "400",
      *       "uploaded_file_name" : "failed"
      *     }
-     *
      */
     private void uploadFiles (RoutingContext c) {
         Iterator<FileUpload> fileUploadIterator = c.fileUploads().iterator();
@@ -423,10 +423,10 @@ public class DFDataProcessor extends AbstractVerticle {
 						fileToBeCopied = currentDir + HelpFunc.generateUniqueFileName(fileName);
 				LOG.debug("===== fileToBeCopied: " + fileToBeCopied);
 				vertx.fileSystem().copy(fileUpload.uploadedFileName(), fileToBeCopied, res -> {
-					if (!res.succeeded())
+					if (!res.succeeded()) {
 						HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
 								.end(DFAPIMessage.getCustomizedResponseMessage("uploaded_file_name", "Failed"));
-					else {
+					} else {
 						LOG.info("FILE COPIED GOOD ==> " + fileToBeCopied);
 						HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
 								.end(DFAPIMessage.getCustomizedResponseMessage("uploaded_file_name", fileToBeCopied));
@@ -439,7 +439,7 @@ public class DFDataProcessor extends AbstractVerticle {
     }
 
     /**
-     * Generic getAll method for REST API End Point
+     * Generic getAll method for REST API End Point.
      * @param c
      */
     private void getAll(RoutingContext c, String connectorCategoryFilter) {
@@ -453,7 +453,7 @@ public class DFDataProcessor extends AbstractVerticle {
 										.add(new JsonObject().put("connectorCategory", connectorCategoryFilter))),
 				HelpFunc.getMongoSortFindOption(c), results -> {
 					List<DFJobPOPJ> jobs = results.result().stream().map(DFJobPOPJ::new).collect(Collectors.toList());
-					HelpFunc.responseCorsHandleAddOn(c.response()).putHeader("X-Total-Count", jobs.size() + "")
+					HelpFunc.responseCorsHandleAddOn(c.response()).putHeader("X-Total-Count", String.valueOf(jobs.size()))
 							.end(Json.encodePrettily(jobs));
 				});
     }
@@ -565,7 +565,7 @@ public class DFDataProcessor extends AbstractVerticle {
     }
 
     /**
-     * Get all ML models for REST API End Point
+     * Get all ML models for REST API End Point.
      * @param c
      */
     private void getAllModels(RoutingContext c) {
@@ -573,7 +573,7 @@ public class DFDataProcessor extends AbstractVerticle {
                 results -> {
                     List<DFModelPOPJ> jobs = results.result().stream().map(DFModelPOPJ::new).collect(Collectors.toList());
                     HelpFunc.responseCorsHandleAddOn(c.response())
-                            .putHeader("X-Total-Count", jobs.size() + "" )
+                            .putHeader("X-Total-Count", String.valueOf(jobs.size()) )
                             .end(Json.encodePrettily(jobs));
                 });
     }
@@ -627,7 +627,6 @@ public class DFDataProcessor extends AbstractVerticle {
      * @apiSampleRequest http://localhost:8080/api/df/hist
      */
     private void getAllProcessHistory(RoutingContext c) {
-
         mongo.runCommand("aggregate",
 				new JsonObject()
 						.put("aggregate", config().getString("db.metadata.collection.name", this.COLLECTION_META))
@@ -667,12 +666,12 @@ public class DFDataProcessor extends AbstractVerticle {
 														HelpFunc.coalesce(c.request().getParam("_sortDir"), "ASC"),
 														"ASC", 1, -1))))),
 				res -> {
-					if (!res.succeeded())
+					if (!res.succeeded()) {
 						res.cause().printStackTrace();
-					else {
+					} else {
 						JsonArray resArr = res.result().getJsonArray("result");
 						HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
-								.putHeader(ConstantApp.HTTP_HEADER_TOTAL_COUNT, resArr.size() + "")
+								.putHeader(ConstantApp.HTTP_HEADER_TOTAL_COUNT, String.valueOf(resArr.size()))
 								.end(Json.encodePrettily(resArr));
 					}
 				});
@@ -692,7 +691,6 @@ public class DFDataProcessor extends AbstractVerticle {
      * @apiSampleRequest http://localhost:8080/api/df/logs
      */
     private void getAllLogs(RoutingContext c) {
-
         JsonObject searchCondition;
 
         String searchKeywords = c.request().getParam("q");
@@ -704,12 +702,11 @@ public class DFDataProcessor extends AbstractVerticle {
 										"JSON.stringify(this).indexOf('" + searchKeywords + "') != -1"))
 								.add(new JsonObject().put("level", new JsonObject().put("$ne", "DEBUG"))));
 
-
         mongo.findWithOptions(COLLECTION_LOG, searchCondition, HelpFunc.getMongoSortFindOption(c),
                 results -> {
                     List<DFLogPOPJ> jobs = results.result().stream().map(DFLogPOPJ::new).collect(Collectors.toList());
                     HelpFunc.responseCorsHandleAddOn(c.response())
-                            .putHeader("X-Total-Count", jobs.size() + "" )
+                            .putHeader("X-Total-Count", String.valueOf(jobs.size()) )
                             .end(Json.encodePrettily(jobs));
                 });
     }
@@ -731,14 +728,15 @@ public class DFDataProcessor extends AbstractVerticle {
         if (topic == null) {
 			c.response().setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST).end(DFAPIMessage.getResponseMessage(9000));
 			LOG.error(DFAPIMessage.getResponseMessage(9000, "TOPIC_IS_NULL"));
-		} else
+		} else {
 			mongo.find(COLLECTION,
 					HelpFunc.getContainsTopics("connectorConfig", ConstantApp.PK_DF_ALL_TOPIC_ALIAS, topic),
 					results -> {
 						List<DFJobPOPJ> jobs = results.result().stream().map(DFJobPOPJ::new).collect(Collectors.toList());
-						HelpFunc.responseCorsHandleAddOn(c.response()).putHeader("X-Total-Count", jobs.size() + "")
+						HelpFunc.responseCorsHandleAddOn(c.response()).putHeader("X-Total-Count", String.valueOf(jobs.size()))
 								.end(Json.encodePrettily(jobs));
 					});
+		}
     }
 
     /**
@@ -772,13 +770,13 @@ public class DFDataProcessor extends AbstractVerticle {
             props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
 
             KafkaConsumer<String, String> consumer = KafkaConsumer.create(vertx, props);
-            ArrayList<JsonObject> responseList = new ArrayList<JsonObject>();
+            ArrayList<JsonObject> responseList = new ArrayList<>();
 
             // Subscribe to a single topic
             consumer.partitionsFor(topic, ar -> {
-                if (!ar.succeeded())
+                if (!ar.succeeded()) {
 					LOG.error(DFAPIMessage.logResponseMessage(9030, topic + "-" + ar.cause().getMessage()));
-				else
+				} else {
 					for (PartitionInfo partitionInfo : ar.result()) {
 						responseList.add(new JsonObject().put("id", partitionInfo.getTopic())
 								.put("partitionNumber", partitionInfo.getPartition())
@@ -786,10 +784,11 @@ public class DFDataProcessor extends AbstractVerticle {
 								.put("replicas", StringUtils.join(partitionInfo.getReplicas(), ','))
 								.put("insyncReplicas", StringUtils.join(partitionInfo.getInSyncReplicas(), ',')));
 						HelpFunc.responseCorsHandleAddOn(c.response())
-								.putHeader("X-Total-Count", responseList.size() + "")
+								.putHeader("X-Total-Count", String.valueOf(responseList.size()))
 								.end(Json.encodePrettily(responseList));
 						consumer.close();
 					}
+				}
             });
 
             consumer.exceptionHandler(e -> LOG.error(DFAPIMessage.logResponseMessage(9031, topic + "-" + e.getMessage())));
@@ -810,7 +809,6 @@ public class DFDataProcessor extends AbstractVerticle {
      * @apiSampleRequest http://localhost:8080/api/df/avroconsumer
      */
     private void pollAllFromTopic(RoutingContext c) {
-
         final String topic = c.request().getParam("id");
         if (topic == null) {
             c.response()
@@ -828,7 +826,7 @@ public class DFDataProcessor extends AbstractVerticle {
                 props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, KafkaAvroDeserializer.class);
 
                 KafkaConsumer<String, String> consumer = KafkaConsumer.create(vertx, props);
-                ArrayList<JsonObject> responseList = new ArrayList<JsonObject>();
+                ArrayList<JsonObject> responseList = new ArrayList<>();
 
                 consumer.handler(record -> {
                     //LOG.debug("Processing value=" + record.record().value() + ",offset=" + record.record().offset());
@@ -839,7 +837,7 @@ public class DFDataProcessor extends AbstractVerticle {
                     );
                     if(responseList.size() >= ConstantApp.AVRO_CONSUMER_BATCH_SIE ) {
                         HelpFunc.responseCorsHandleAddOn(c.response())
-                                .putHeader("X-Total-Count", responseList.size() + "")
+                                .putHeader("X-Total-Count", String.valueOf(responseList.size()))
                                 .end(Json.encodePrettily(responseList));
                         consumer.pause();
                         consumer.commit();
@@ -850,10 +848,11 @@ public class DFDataProcessor extends AbstractVerticle {
 
                 // Subscribe to a single topic
                 consumer.subscribe(topic, ar -> {
-                    if (ar.succeeded())
+                    if (ar.succeeded()) {
 						LOG.info(DFAPIMessage.logResponseMessage(1027, "topic = " + topic));
-					else
+					} else {
 						LOG.error(DFAPIMessage.logResponseMessage(9030, topic + "-" + ar.cause().getMessage()));
+					}
                 });
         }
     }
@@ -890,7 +889,7 @@ public class DFDataProcessor extends AbstractVerticle {
                     .setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
                     .end(DFAPIMessage.getResponseMessage(9000));
             LOG.error(DFAPIMessage.getResponseMessage(9000, "id=null"));
-        } else
+        } else {
 			mongo.findOne(COLLECTION, new JsonObject().put("_id", id), null, ar -> {
 				if (!ar.succeeded()) {
 					c.response().setStatusCode(ConstantApp.STATUS_CODE_NOT_FOUND)
@@ -908,11 +907,10 @@ public class DFDataProcessor extends AbstractVerticle {
 					LOG.info(DFAPIMessage.logResponseMessage(1003, id));
 				}
 			});
+		}
     }
 
-    /**
-     * Get one model from repository
-     */
+    /** Get one model from repository. */
     private void getOneModel(RoutingContext c) {
         final String id = c.request().getParam("id");
         if (id == null) {
@@ -920,7 +918,7 @@ public class DFDataProcessor extends AbstractVerticle {
                     .setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
                     .end(DFAPIMessage.getResponseMessage(9000));
             LOG.error(DFAPIMessage.getResponseMessage(9000, "id=null"));
-        } else
+        } else {
 			mongo.findOne(COLLECTION_MODEL, new JsonObject().put("_id", id), null, ar -> {
 				if (!ar.succeeded()) {
 					c.response().setStatusCode(ConstantApp.STATUS_CODE_NOT_FOUND)
@@ -938,6 +936,7 @@ public class DFDataProcessor extends AbstractVerticle {
 					LOG.info(DFAPIMessage.logResponseMessage(1003, id));
 				}
 			});
+		}
     }
 
     /**
@@ -958,7 +957,7 @@ public class DFDataProcessor extends AbstractVerticle {
                     .setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
                     .end(DFAPIMessage.getResponseMessage(9000));
             LOG.error(DFAPIMessage.getResponseMessage(9000, "id=null"));
-        } else
+        } else {
 			mongo.findOne(COLLECTION_INSTALLED, new JsonObject().put("connectorType", id), null, ar -> {
 				if (!ar.succeeded()) {
 					c.response().setStatusCode(ConstantApp.STATUS_CODE_NOT_FOUND)
@@ -976,6 +975,7 @@ public class DFDataProcessor extends AbstractVerticle {
 					LOG.info(DFAPIMessage.logResponseMessage(1003, id));
 				}
 			});
+		}
     }
 
     /**
@@ -1056,21 +1056,20 @@ public class DFDataProcessor extends AbstractVerticle {
      * @apiSampleRequest http://localhost:8080/api/logs/:id
      */
     private void getOneLogs(RoutingContext c) {
-
         final String id = c.request().getParam("id");
         if (id == null) {
             c.response()
                     .setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
                     .end(DFAPIMessage.getResponseMessage(9000));
             LOG.error(DFAPIMessage.getResponseMessage(9000, id));
-        } else
+        } else {
 			mongo.findWithOptions(COLLECTION_LOG, new JsonObject().put("message", new JsonObject().put("$regex", id)),
 					HelpFunc.getMongoSortFindOption(c), results -> {
 						List<JsonObject> jobs = results.result();
-						HelpFunc.responseCorsHandleAddOn(c.response()).putHeader("X-Total-Count", jobs.size() + "")
+						HelpFunc.responseCorsHandleAddOn(c.response()).putHeader("X-Total-Count", String.valueOf(jobs.size()))
 								.end(Json.encodePrettily(jobs));
 					});
-
+		}
     }
 
     /**
@@ -1093,7 +1092,7 @@ public class DFDataProcessor extends AbstractVerticle {
                     .setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
                     .end(DFAPIMessage.getResponseMessage(9000));
             LOG.error(DFAPIMessage.getResponseMessage(9000, id));
-        } else
+        } else {
 			mongo.findOne(COLLECTION, new JsonObject().put("_id", id), null, ar -> {
 				if (!ar.succeeded()) {
 					c.response().setStatusCode(ConstantApp.STATUS_CODE_NOT_FOUND)
@@ -1107,19 +1106,23 @@ public class DFDataProcessor extends AbstractVerticle {
 						return;
 					}
 					DFJobPOPJ dfJob = new DFJobPOPJ(ar.result());
-					if ("CONNECT".equalsIgnoreCase(dfJob.getConnectorCategory()))
+					if ("CONNECT".equalsIgnoreCase(dfJob.getConnectorCategory())) {
 						ProcessorConnectKafka.forwardGetAsGetOne(c, wc_connect, kafka_connect_rest_host,
 								kafka_connect_rest_port, id);
+					}
 					if ("TRANSFORM".equalsIgnoreCase(dfJob.getConnectorCategory())) {
-						if (dfJob.getConnectorType().contains("FLINK"))
+						if (dfJob.getConnectorType().contains("FLINK")) {
 							ProcessorTransformFlink.forwardGetAsJobStatus(c, wc_flink, flink_server_host,
 									flink_rest_server_port, id, dfJob.getFlinkIDFromJobConfig());
-						if (dfJob.getConnectorType().contains("SPARK"))
+						}
+						if (dfJob.getConnectorType().contains("SPARK")) {
 							ProcessorTransformSpark.forwardGetAsJobStatus(c, wc_spark, dfJob, spark_livy_server_host,
 									spark_livy_server_port);
+						}
 					}
 				}
 			});
+		}
     }
 
     /**
@@ -1152,13 +1155,13 @@ public class DFDataProcessor extends AbstractVerticle {
         dfJob.setConnectUid(mongoId).setId(mongoId).getConnectorConfig().put("cuid", mongoId);
         LOG.debug("newly added connect is " + dfJob.toJson());
         if (dfJob.getConnectorConfig().containsKey(ConstantApp.PK_KAFKA_CONNECTOR_CLASS)
-				&& dfJob.getConnectorConfig().get(ConstantApp.PK_KAFKA_CONNECTOR_CLASS) != null)
+				&& dfJob.getConnectorConfig().get(ConstantApp.PK_KAFKA_CONNECTOR_CLASS) != null) {
 			LOG.debug("Use connector.class in the config received");
-		else {
+		} else {
 			String connectorClass = mongoDFInstalled.lkpCollection("connectorType", dfJob.getConnectorType(), "class");
-			if (connectorClass == null || connectorClass.isEmpty())
+			if (connectorClass == null || connectorClass.isEmpty()) {
 				LOG.info(DFAPIMessage.logResponseMessage(9024, mongoId + " - " + connectorClass));
-			else {
+			} else {
 				dfJob.getConnectorConfig().put(ConstantApp.PK_KAFKA_CONNECTOR_CLASS, connectorClass);
 				LOG.info(DFAPIMessage.logResponseMessage(1018, mongoId + " - " + connectorClass));
 			}
@@ -1234,9 +1237,7 @@ public class DFDataProcessor extends AbstractVerticle {
         LOG.info(DFAPIMessage.logResponseMessage(1000, dfJob.getId()));
     }
 
-    /**
-     * Add one model's meta information to repository
-     */
+    /** Add one model's meta information to repository. */
     private void addOneModel(RoutingContext c) {
         String rawResBody = HelpFunc.cleanJsonConfig(c.getBodyAsString());
         LOG.debug("TESTING addOneModel - resRaw = " + rawResBody);
@@ -1308,12 +1309,13 @@ public class DFDataProcessor extends AbstractVerticle {
     private void putOneConnect(RoutingContext c) {
         final DFJobPOPJ dfJob = Json.decodeValue(c.getBodyAsString(),DFJobPOPJ.class);
         String status = dfJob.getStatus();
-        if (!status.equalsIgnoreCase(ConstantApp.KAFKA_CONNECT_ACTION_PAUSE)
-				&& !status.equalsIgnoreCase(ConstantApp.KAFKA_CONNECT_ACTION_RESUME))
+        if (!ConstantApp.KAFKA_CONNECT_ACTION_PAUSE.equalsIgnoreCase(status)
+				&& !ConstantApp.KAFKA_CONNECT_ACTION_RESUME.equalsIgnoreCase(status)) {
 			updateOneConnects(c, "restart".equalsIgnoreCase(status));
-		else
+		} else {
 			ProcessorConnectKafka.forwardPUTAsPauseOrResumeOne(c, wc_connect, mongo, COLLECTION,
 					kafka_connect_rest_host, kafka_connect_rest_port, dfJob, status);
+		}
     }
 
     /**
@@ -1345,20 +1347,20 @@ public class DFDataProcessor extends AbstractVerticle {
         if (id == null || dfJob.toJson() == null) {
 			c.response().setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST).end(DFAPIMessage.getResponseMessage(9000));
 			LOG.error(DFAPIMessage.logResponseMessage(9000, id));
-		} else
+		} else {
 			mongo.findOne(COLLECTION, new JsonObject().put("_id", id), new JsonObject().put("connectorConfig", 1),
 					res -> {
-						if (!res.succeeded())
+						if (!res.succeeded()) {
 							LOG.error(DFAPIMessage.logResponseMessage(9014, id + " details - " + res.cause()));
-						else {
+						} else {
 							String before_update_connectorConfigString = res.result().getJsonObject("connectorConfig")
 									.toString();
 							if (enforceSubmit || (this.kafkaConnectEnabled
 									&& dfJob.getConnectorType().contains("CONNECT")
-									&& connectorConfigString.compareTo(before_update_connectorConfigString) != 0))
+									&& connectorConfigString.compareTo(before_update_connectorConfigString) != 0)) {
 								ProcessorConnectKafka.forwardPUTAsUpdateOne(c, wc_connect, mongo, COLLECTION,
 										kafka_connect_rest_host, kafka_connect_rest_port, dfJob);
-							else {
+							} else {
 								LOG.info(DFAPIMessage.logResponseMessage(1007, id));
 								mongo.updateCollection(COLLECTION, new JsonObject().put("_id", id),
 										new JsonObject().put("$set", dfJob.toJson()), v -> {
@@ -1375,6 +1377,7 @@ public class DFDataProcessor extends AbstractVerticle {
 							}
 						}
 					});
+		}
     }
 
     /**
@@ -1405,41 +1408,43 @@ public class DFDataProcessor extends AbstractVerticle {
         if (id == null || dfJob.toJson() == null) {
 			c.response().setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST).end(DFAPIMessage.getResponseMessage(9000));
 			LOG.error(DFAPIMessage.logResponseMessage(9000, id));
-		} else
+		} else {
 			mongo.findOne(COLLECTION, new JsonObject().put("_id", id), new JsonObject().put("connectorConfig", 1),
 					res -> {
-						if (!res.succeeded())
+						if (!res.succeeded()) {
 							LOG.error(DFAPIMessage.logResponseMessage(9014, id + " details - " + res.cause()));
-						else {
+						} else {
 							String before_update_connectorConfigString = res.result().getJsonObject("connectorConfig")
 									.toString();
 							if (this.transform_engine_flink_enabled && dfJob.getConnectorType().contains("FLINK")
 									&& connectorConfigString.compareTo(before_update_connectorConfigString) != 0) {
 								JsonObject para = HelpFunc.getFlinkJarPara(dfJob, this.kafka_server_host_and_port,
 										this.schema_registry_host_and_port);
-								if (!dfJob.getStatus().equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name()))
+								if (!dfJob.getStatus().equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name())) {
 									ProcessorTransformFlink.forwardPostAsSubmitJar(wc_flink, dfJob, mongo, COLLECTION,
 											flink_server_host, flink_rest_server_port, flink_jar_id,
 											para.getString("allowNonRestoredState"), para.getString("savepointPath"),
 											para.getString("entryClass"), para.getString("parallelism"),
 											para.getString("programArgs"));
-								else
+								} else {
 									ProcessorTransformFlink.forwardPutAsRestartJob(c, wc_flink, mongo,
 											COLLECTION_INSTALLED, COLLECTION, flink_server_host, flink_rest_server_port,
 											flink_jar_id, dfJob.getJobConfig().get(ConstantApp.PK_FLINK_SUBMIT_JOB_ID),
 											dfJob, para.getString("allowNonRestoredState"),
 											para.getString("savepointPath"), para.getString("entryClass"),
 											para.getString("parallelism"), para.getString("programArgs"));
+								}
 								dfJob.setStatus(ConstantApp.DF_STATUS.UNASSIGNED.name());
 							} else if (!this.transform_engine_spark_enabled || !dfJob.getConnectorType().contains("SPARK")
-									|| connectorConfigString.compareTo(before_update_connectorConfigString) == 0)
+									|| connectorConfigString.compareTo(before_update_connectorConfigString) == 0) {
 								LOG.info(DFAPIMessage.logResponseMessage(1007, id));
-							else {
+							} else {
 								dfJob.setStatus(ConstantApp.DF_STATUS.UNASSIGNED.name());
 								if ("true".equalsIgnoreCase(
-										dfJob.getConnectorConfig(ConstantApp.PK_TRANSFORM_STREAM_BACK_FLAG)))
+										dfJob.getConnectorConfig(ConstantApp.PK_TRANSFORM_STREAM_BACK_FLAG))) {
 									dfJob.setConnectorConfig(ConstantApp.PK_TRANSFORM_STREAM_BACK_TASK_STATE,
 											ConstantApp.DF_STATUS.UNASSIGNED.name());
+								}
 								ProcessorTransformSpark.forwardPutAsUpdateOne(vertx, wc_spark, dfJob, mongo, COLLECTION,
 										spark_livy_server_host, spark_livy_server_port);
 							}
@@ -1457,17 +1462,16 @@ public class DFDataProcessor extends AbstractVerticle {
 									});
 						}
 					});
+		}
     }
 
-    /**
-     * Update one model information
-     */
+    /** Update one model information. */
     private void updateOneModel(RoutingContext c) {
         final String id = c.request().getParam("id");
         if (id == null) {
 			c.response().setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST).end(DFAPIMessage.getResponseMessage(9000));
 			LOG.error(DFAPIMessage.logResponseMessage(9000, id));
-		} else
+		} else {
 			mongo.updateCollection(COLLECTION_MODEL, new JsonObject().put("_id", id),
 					new JsonObject().put("$set", Json.decodeValue(c.getBodyAsString(), DFModelPOPJ.class).toJson()),
 					v -> {
@@ -1480,6 +1484,7 @@ public class DFDataProcessor extends AbstractVerticle {
 							LOG.error(DFAPIMessage.logResponseMessage(9003, id));
 						}
 					});
+		}
     }
 
     /**
@@ -1529,34 +1534,33 @@ public class DFDataProcessor extends AbstractVerticle {
      */
     private void deleteOneConnects(RoutingContext c) {
         String id = c.request().getParam("id");
-        
-        if (id == null) {
+                if (id == null) {
             c.response().setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
                     .end(DFAPIMessage.getResponseMessage(9000));
             LOG.error(DFAPIMessage.logResponseMessage(9000, id));
-        } else
-			mongo.findOne(COLLECTION, new JsonObject().put("_id", id), null, ar -> {
-				if (ar.succeeded()) {
-					if (ar.result() == null) {
-						c.response().setStatusCode(ConstantApp.STATUS_CODE_NOT_FOUND)
-								.end(DFAPIMessage.getResponseMessage(9001));
-						LOG.error(DFAPIMessage.logResponseMessage(9001, id));
-						return;
-					}
-					DFJobPOPJ dfJob = new DFJobPOPJ(ar.result());
-					if (this.kafkaConnectEnabled && (dfJob.getConnectorType().contains("CONNECT")))
-						ProcessorConnectKafka.forwardDELETEAsDeleteOne(c, wc_connect, mongo, COLLECTION,
-								kafka_connect_rest_host, kafka_connect_rest_port, dfJob);
-					else {
-						mongo.removeDocument(COLLECTION, new JsonObject().put("_id", id),
-								remove -> c.response().end(DFAPIMessage.getResponseMessage(1002, id)));
-						LOG.info(DFAPIMessage.logResponseMessage(1002, id));
-					}
+        } else {
+					mongo.findOne(COLLECTION, new JsonObject().put("_id", id), null, ar -> {
+						if (ar.succeeded()) {
+							if (ar.result() == null) {
+								c.response().setStatusCode(ConstantApp.STATUS_CODE_NOT_FOUND)
+										.end(DFAPIMessage.getResponseMessage(9001));
+								LOG.error(DFAPIMessage.logResponseMessage(9001, id));
+								return;
+							}
+							DFJobPOPJ dfJob = new DFJobPOPJ(ar.result());
+							if (this.kafkaConnectEnabled && dfJob.getConnectorType().contains("CONNECT")) {
+								ProcessorConnectKafka.forwardDELETEAsDeleteOne(c, wc_connect, mongo, COLLECTION,
+										kafka_connect_rest_host, kafka_connect_rest_port, dfJob);
+							} else {
+								mongo.removeDocument(COLLECTION, new JsonObject().put("_id", id),
+										remove -> c.response().end(DFAPIMessage.getResponseMessage(1002, id)));
+								LOG.info(DFAPIMessage.logResponseMessage(1002, id));
+							}
+						}
+					});
 				}
-			});
     }
-	
-    /**
+	    /**
      * Transforms specific deleteOne End Point for Rest API
      * @param c
      *
@@ -1585,7 +1589,7 @@ public class DFDataProcessor extends AbstractVerticle {
                     .setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
                     .end(DFAPIMessage.getResponseMessage(9000));
             LOG.error(DFAPIMessage.logResponseMessage(9000, id));
-        } else
+        } else {
 			mongo.findOne(COLLECTION, new JsonObject().put("_id", id), null, ar -> {
 				if (!ar.succeeded()) {
 					c.response().setStatusCode(ConstantApp.STATUS_CODE_NOT_FOUND)
@@ -1599,7 +1603,7 @@ public class DFDataProcessor extends AbstractVerticle {
 								dfJob.getConnectorConfig(ConstantApp.PK_TRANSFORM_STREAM_BACK_PATH));
 						try {
 							FileUtils.deleteDirectory(streamBackFolder);
-							LOG.info("STREAM_BACK_FOLDER_DELETED " + streamBackFolder.toString());
+							LOG.info("STREAM_BACK_FOLDER_DELETED " + streamBackFolder);
 						} catch (IOException ioe) {
 							LOG.error("DELETE_STREAM_BACK_FOLDER_FAILED " + ioe.getCause());
 						}
@@ -1650,6 +1654,7 @@ public class DFDataProcessor extends AbstractVerticle {
 					}
 				}
 			});
+		}
     }
 
     /**
@@ -1662,7 +1667,7 @@ public class DFDataProcessor extends AbstractVerticle {
             c.response().setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
                     .end(DFAPIMessage.getResponseMessage(9000));
             LOG.error(DFAPIMessage.logResponseMessage(9000, id));
-        } else
+        } else {
 			mongo.findOne(COLLECTION_MODEL, new JsonObject().put("_id", id), null, ar -> {
 				if (ar.succeeded()) {
 					if (ar.result() == null) {
@@ -1691,6 +1696,7 @@ public class DFDataProcessor extends AbstractVerticle {
 							});
 				}
 			});
+		}
     }
 
     /**
@@ -1725,7 +1731,6 @@ public class DFDataProcessor extends AbstractVerticle {
      * This is blocking process since it is a part of application initialization.
      */
     private void startMetadataSink() {
-
         String restURI = "http://" + this.kafka_connect_rest_host + ":" + this.kafka_connect_rest_port
 				+ ConstantApp.KAFKA_CONNECT_REST_URL,
 				metaDBHost = config().getString("repo.connection.string", "mongodb://localhost:27017").replace("//", "")
@@ -1752,9 +1757,10 @@ public class DFDataProcessor extends AbstractVerticle {
                     .header("accept", ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
                     .asString();
 
-            if(res.getStatus() == ConstantApp.STATUS_CODE_NOT_FOUND)
+            if(res.getStatus() == ConstantApp.STATUS_CODE_NOT_FOUND) {
 				Unirest.post(restURI).header("accept", "application/json").header("Content-Type", "application/json")
 						.body(metaSinkConnect).asString();
+			}
 
             String dfMetaSchemaSubject = config().getString("kafka.topic.df.metadata", "df_meta"),
 					schemaRegistryRestURL = "http://" + this.schema_registry_host_and_port + "/subjects/"
@@ -1763,9 +1769,9 @@ public class DFDataProcessor extends AbstractVerticle {
                     .header("accept", ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
                     .asString();
 
-            if (schmeaRes.getStatus() != ConstantApp.STATUS_CODE_NOT_FOUND)
+            if (schmeaRes.getStatus() != ConstantApp.STATUS_CODE_NOT_FOUND) {
 				LOG.info(DFAPIMessage.logResponseMessage(1009, "META_DATA_SCHEMA_REGISTRATION"));
-			else {
+			} else {
 				Unirest.post(schemaRegistryRestURL).header("accept", ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
 						.header("Content-Type", ConstantApp.AVRO_REGISTRY_CONTENT_TYPE)
 						.body(new JSONObject().put("schema",
@@ -1793,7 +1799,6 @@ public class DFDataProcessor extends AbstractVerticle {
 					DFAPIMessage.logResponseMessage(1010,
 							"topic:df_meta, status:" + (!resObj.has("connector") ? "Unknown"
 									: resObj.getJSONObject("connector").get("state").toString())));
-
         } catch (UnirestException ue) {
             LOG.error(DFAPIMessage
                     .logResponseMessage(9015, "exception details - " + ue.getCause()));
@@ -1802,7 +1807,7 @@ public class DFDataProcessor extends AbstractVerticle {
 
     /**
      * Get initial method to import all active connectors from Kafka connect to mongodb repo
-     * The same function does not apply to the transforms since we are not able to rebuild their configs
+     * The same function does not apply to the transforms since we are not able to rebuild their configs.
      */
     private void importAllFromKafkaConnect() {
         LOG.info(DFAPIMessage.logResponseMessage(1015, "CONNECT_IMPORT"));
@@ -1810,12 +1815,13 @@ public class DFDataProcessor extends AbstractVerticle {
                 ConstantApp.KAFKA_CONNECT_REST_URL;
         try {
             String resStr = Unirest.get(restURI).header("accept", "application/json").asString().getBody();
-            if (resStr.compareToIgnoreCase("[]") == 0 || "[null]".equalsIgnoreCase(resStr))
+            if (resStr.compareToIgnoreCase("[]") == 0 || "[null]".equalsIgnoreCase(resStr)) {
 				LOG.info(DFAPIMessage.logResponseMessage(1013, "CONNECT_IMPORT"));
-			else
+			} else {
 				for (String connectName : resStr.substring(2, resStr.length() - 2).split("\",\"")) {
-					if ("null".equalsIgnoreCase(connectName))
+					if ("null".equalsIgnoreCase(connectName)) {
 						continue;
+					}
 					JsonNode resConfig = Unirest.get(restURI + "/" + connectName + "/config").header("accept", "application/json").asJson().getBody();
 					String resConnectType = "metadata_sink_connect".equalsIgnoreCase(resConfig.getObject().getString("name"))
 							? ConstantApp.DF_CONNECT_TYPE.INTERNAL_METADATA_COLLECT.name()
@@ -1829,10 +1835,10 @@ public class DFDataProcessor extends AbstractVerticle {
 					String resStatus = resConnectorStatus.getStatus() != 200 ? ConstantApp.DF_STATUS.LOST.name()
 							: HelpFunc.getTaskStatusKafka(resConnectorStatus.getBody().getObject());
 					mongo.count(COLLECTION, new JsonObject().put("connectUid", connectName), count -> {
-						if (!count.succeeded())
+						if (!count.succeeded()) {
 							LOG.error(DFAPIMessage.logResponseMessage(9018,
 									"exception_details - " + connectName + " - " + count.cause()));
-						else if (count.result() == 0) {
+						} else if (count.result() == 0) {
 							DFJobPOPJ insertJob = new DFJobPOPJ(new JsonObject().put("_id", connectName)
 									.put("name", "imported " + connectName).put("taskSeq", "0")
 									.put("connectUid", connectName).put("connectorType", resConnectType)
@@ -1841,19 +1847,20 @@ public class DFDataProcessor extends AbstractVerticle {
 											new JsonObject().put("comments", "This is imported from Kafka Connect."))
 									.put("connectorConfig", new JsonObject(resConfig.getObject().toString())));
 							mongo.insert(COLLECTION, insertJob.toJson(), ar -> {
-								if (!ar.failed())
+								if (!ar.failed()) {
 									LOG.debug(DFAPIMessage.logResponseMessage(1012, "CONNECT_IMPORT"));
-								else
+								} else {
 									LOG.error(
 											DFAPIMessage.logResponseMessage(9016, "exception_details - " + ar.cause()));
+								}
 							});
-						} else
+						} else {
 							mongo.findOne(COLLECTION, new JsonObject().put("connectUid", connectName), null,
 									findidRes -> {
-										if (!findidRes.succeeded())
+										if (!findidRes.succeeded()) {
 											LOG.error(DFAPIMessage.logResponseMessage(9002,
 													"CONNECT_IMPORT - " + findidRes.cause()));
-										else {
+										} else {
 											DFJobPOPJ updateJob = new DFJobPOPJ(findidRes.result());
 											try {
 												updateJob.setStatus(resStatus)
@@ -1868,18 +1875,21 @@ public class DFDataProcessor extends AbstractVerticle {
 											mongo.updateCollection(COLLECTION,
 													new JsonObject().put("_id", updateJob.getId()),
 													new JsonObject().put("$set", updateJob.toJson()), v -> {
-														if (!v.failed())
+														if (!v.failed()) {
 															LOG.debug(DFAPIMessage.logResponseMessage(1001,
 																	"CONNECT_IMPORT - " + updateJob.getId()));
-														else
+														} else {
 															LOG.error(DFAPIMessage.logResponseMessage(9003,
 																	"CONNECT_IMPORT - " + updateJob.getId() + "-"
 																			+ v.cause()));
+														}
 													});
 										}
 									});
+						}
 					});
 				}
+			}
         } catch (UnirestException ue) {
             LOG.error(DFAPIMessage.logResponseMessage(9006, "CONNECT_IMPORT - " + ue.getCause()));
         }
@@ -1887,7 +1897,7 @@ public class DFDataProcessor extends AbstractVerticle {
     }
 
     /**
-     * Keep refreshing the active Kafka connectors' status in repository against remote Kafka REST Server
+     * Keep refreshing the active Kafka connectors' status in repository against remote Kafka REST Server.
      */
     private void updateKafkaConnectorStatus() {
         List<String> list = new ArrayList<>();
@@ -1896,9 +1906,9 @@ public class DFDataProcessor extends AbstractVerticle {
         list.add(ConstantApp.DF_CONNECT_TYPE.INTERNAL_METADATA_COLLECT.name()); // update metadata sink as well
 
         mongo.find(COLLECTION, new JsonObject().put("connectorType", new JsonObject().put("$in", list)), result -> {
-            if (!result.succeeded())
+            if (!result.succeeded()) {
 				LOG.error(DFAPIMessage.logResponseMessage(9002, result.cause().getMessage()));
-			else
+			} else {
 				for (JsonObject json : result.result()) {
 					String connectName = json.getString("connectUid"), statusRepo = json.getString("status"),
 							taskId = json.getString("_id");
@@ -1908,36 +1918,38 @@ public class DFDataProcessor extends AbstractVerticle {
 							.putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE,
 									ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
 							.send(ar -> {
-								if (!ar.succeeded())
+								if (!ar.succeeded()) {
 									LOG.error(DFAPIMessage.logResponseMessage(9006, ar.cause().getMessage()));
-								else {
+								} else {
 									String resStatus = (ar.result().statusCode() == ConstantApp.STATUS_CODE_NOT_FOUND)
 											? ConstantApp.DF_STATUS.LOST.name()
 											: HelpFunc.getTaskStatusKafka(ar.result().bodyAsJsonObject());
-									if (statusRepo.compareToIgnoreCase(resStatus) == 0 || resStatus
+									if (statusRepo.compareToIgnoreCase(resStatus) == 0 || (resStatus
 											.equalsIgnoreCase(ConstantApp.DF_STATUS.UNASSIGNED.name())
-											&& statusRepo.equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name()))
+											&& statusRepo.equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name()))) {
 										LOG.debug(DFAPIMessage.logResponseMessage(1020, taskId));
-									else {
+									} else {
 										DFJobPOPJ updateJob = new DFJobPOPJ(json);
 										updateJob.setStatus(resStatus);
 										mongo.updateCollection(COLLECTION, new JsonObject().put("_id", taskId),
 												new JsonObject().put("$set", updateJob.toJson()), v -> {
-													if (!v.failed())
+													if (!v.failed()) {
 														LOG.info(DFAPIMessage.logResponseMessage(1019, taskId));
-													else
+													} else {
 														LOG.error(DFAPIMessage.logResponseMessage(9003,
 																taskId + "cause:" + v.cause()));
+													}
 												});
 									}
 								}
 							});
 				}
+			}
         });
     }
 
     /**
-     * Keep refreshing the active Flink transforms/jobs' status in repository against remote Flink REST Server
+     * Keep refreshing the active Flink transforms/jobs' status in repository against remote Flink REST Server.
      */
     private void updateFlinkJobStatus() {
         List<String> list = new ArrayList<>();
@@ -1945,9 +1957,9 @@ public class DFDataProcessor extends AbstractVerticle {
         HelpFunc.addSpecifiedConnectTypetoList(list, "(?i:.*transform_exchange_flink.*)") ;
 
         mongo.find(COLLECTION, new JsonObject().put("connectorType", new JsonObject().put("$in", list)), result -> {
-            if (!result.succeeded())
+            if (!result.succeeded()) {
 				LOG.error(DFAPIMessage.logResponseMessage(9002, "TRANSFORM_STATUS_REFRESH:" + result.cause()));
-			else
+			} else {
 				for (JsonObject json : result.result()) {
 					String statusRepo = json.getString("status"), taskId = json.getString("_id"),
 							jobId = ConstantApp.FLINK_DUMMY_JOB_ID;
@@ -1957,10 +1969,11 @@ public class DFDataProcessor extends AbstractVerticle {
 						updateJob.setStatus(ConstantApp.DF_STATUS.LOST.name());
 						mongo.updateCollection(COLLECTION, new JsonObject().put("_id", updateJob.getId()),
 								new JsonObject().put("$set", updateJob.toJson()), v -> {
-									if (!v.failed())
+									if (!v.failed()) {
 										LOG.info(DFAPIMessage.logResponseMessage(1022, taskId));
-									else
+									} else {
 										LOG.error(DFAPIMessage.logResponseMessage(9003, taskId + "cause:" + v.cause()));
+									}
 								});
 					} else {
 						jobId = json.getJsonObject("jobConfig").getString(ConstantApp.PK_FLINK_SUBMIT_JOB_ID);
@@ -1978,24 +1991,26 @@ public class DFDataProcessor extends AbstractVerticle {
 										String resStatus = ar.result().statusCode() == ConstantApp.STATUS_CODE_NOT_FOUND
 												? ConstantApp.DF_STATUS.LOST.name()
 												: HelpFunc.getTaskStatusFlink(ar.result().bodyAsJsonObject());
-										if (statusRepo.compareToIgnoreCase(resStatus) == 0)
+										if (statusRepo.compareToIgnoreCase(resStatus) == 0) {
 											LOG.debug(DFAPIMessage.logResponseMessage(1022, "Flink " + taskId));
-										else {
+										} else {
 											updateJob.setStatus(resStatus);
 											LOG.info(DFAPIMessage.logResponseMessage(1021, "Flink " + taskId));
 										}
 									}
 									mongo.updateCollection(COLLECTION, new JsonObject().put("_id", updateJob.getId()),
 											new JsonObject().put("$set", updateJob.toJson()), v -> {
-												if (!v.failed())
+												if (!v.failed()) {
 													LOG.debug(DFAPIMessage.logResponseMessage(1001, taskId));
-												else
+												} else {
 													LOG.error(DFAPIMessage.logResponseMessage(9003,
 															taskId + "cause:" + v.cause()));
+												}
 											});
 								});
 					}
 				}
+			}
         });
     }
 
@@ -2015,9 +2030,9 @@ public class DFDataProcessor extends AbstractVerticle {
         HelpFunc.addSpecifiedConnectTypetoList(list, "(?i:.*transform_model_spark.*)") ;
 
         mongo.find(COLLECTION, new JsonObject().put("connectorType", new JsonObject().put("$in", list)), result -> {
-            if (!result.succeeded())
+            if (!result.succeeded()) {
 				LOG.error(DFAPIMessage.logResponseMessage(9002, "TRANSFORM_STATUS_REFRESH:" + result.cause()));
-			else
+			} else {
 				for (JsonObject json : result.result()) {
 					String repoStatus = json.getString("status"), taskId = json.getString("_id");
 					DFJobPOPJ updateJob = new DFJobPOPJ(json);
@@ -2027,18 +2042,19 @@ public class DFDataProcessor extends AbstractVerticle {
 						updateJob.setStatus(ConstantApp.DF_STATUS.LOST.name());
 						mongo.updateCollection(COLLECTION, new JsonObject().put("_id", updateJob.getId()),
 								new JsonObject().put("$set", updateJob.toJson()), v -> {
-									if (v.failed())
+									if (v.failed()) {
 										LOG.error(DFAPIMessage.logResponseMessage(9003, taskId + "cause:" + v.cause()));
-									else
+									} else {
 										LOG.debug(DFAPIMessage.logResponseMessage(1001,
 												"Missing Livy session/statement with task Id " + taskId));
+									}
 								});
 					} else if (!updateJob.getStatus().equalsIgnoreCase(ConstantApp.DF_STATUS.RUNNING.name())
 							&& !updateJob.getStatus().equalsIgnoreCase(ConstantApp.DF_STATUS.STREAMING.name())
 							&& !updateJob.getStatus().equalsIgnoreCase(ConstantApp.DF_STATUS.UNASSIGNED.name())
-							&& !updateJob.getStatus().equalsIgnoreCase(ConstantApp.DF_STATUS.LOST.name()))
+							&& !updateJob.getStatus().equalsIgnoreCase(ConstantApp.DF_STATUS.LOST.name())) {
 						LOG.debug(DFAPIMessage.logResponseMessage(1022, taskId));
-					else {
+					} else {
 						String sessionId = json.getJsonObject("jobConfig").getString(ConstantApp.PK_LIVY_SESSION_ID),
 								statementId = json.getJsonObject("jobConfig")
 										.getString(ConstantApp.PK_LIVY_STATEMENT_ID),
@@ -2091,9 +2107,9 @@ public class DFDataProcessor extends AbstractVerticle {
 														LOG.debug("repoFullCode = " + repoFullCode + " resFullCode = "
 																+ resFullCode);
 														if (repoStatus.compareToIgnoreCase(resStatus) == 0
-																|| !repoFullCode.equalsIgnoreCase(resFullCode))
+																|| !repoFullCode.equalsIgnoreCase(resFullCode)) {
 															LOG.debug(DFAPIMessage.logResponseMessage(1022, taskId));
-														else {
+														} else {
 															LOG.debug("Change Detected");
 															updateJob.setStatus(resStatus)
 																	.setJobConfig(ConstantApp.PK_LIVY_STATEMENT_STATE,
@@ -2154,7 +2170,7 @@ public class DFDataProcessor extends AbstractVerticle {
 								});
 					}
 				}
+			}
         });
     }
 }
-

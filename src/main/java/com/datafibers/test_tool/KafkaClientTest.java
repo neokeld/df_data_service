@@ -3,7 +3,6 @@ package com.datafibers.test_tool;
 import com.datafibers.util.KafkaAdminClient;
 
 public class KafkaClientTest {
-
     public static void main(String[] args) {
         KafkaAdminClient.listTopics("localhost:9092")
                         .forEach(System.out::println);

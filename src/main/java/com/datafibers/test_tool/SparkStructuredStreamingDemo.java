@@ -19,9 +19,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 
 */
-/**
- * Structured streaming demo using Avro'ed Kafka topic as input
- *//*
+/* Structured streaming demo using Avro'ed Kafka topic as input *//*
 
 public class SparkStructuredStreamingDemo {
 

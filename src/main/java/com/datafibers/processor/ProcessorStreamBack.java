@@ -13,11 +13,10 @@ import java.io.File;
 import java.util.List;
 
 /**
- * This is the utility class to communicate with Spark through Apache Livy Rest Service
+ * This is the utility class to communicate with Spark through Apache Livy Rest Service.
  */
 
 public class ProcessorStreamBack {
-
     private static final Logger LOG = Logger.getLogger(ProcessorStreamBack.class);
 
     /**
@@ -87,9 +86,9 @@ public class ProcessorStreamBack {
 					.putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE, ConstantApp.AVRO_REGISTRY_CONTENT_TYPE)
 					.sendJsonObject(new JsonObject().put(ConstantApp.SCHEMA_REGISTRY_KEY_SCHEMA, schemaFields),
 							schemar -> {
-								if (!schemar.succeeded())
+								if (!schemar.succeeded()) {
 									l.error("Schema creation failed for streaming back worker");
-								else {
+								} else {
 									l.debug("Stream Back Schema is created with version "
 											+ schemar.result().bodyAsString());
 									l.debug("The schema fields are " + schemaFields);
@@ -140,7 +139,7 @@ public class ProcessorStreamBack {
     }
 
     /**
-     * enableStreamBack is a generic function to submit stream back task if requested. It also check the status of the
+     * EnableStreamBack is a generic function to submit stream back task if requested. It also check the status of the
      * stream back worker and update proper status in the stream back master (the transform which triggered the stream
      * back task. Another important function is whether to overwrite the status in updateJob. The stream master's status
      * has to be overwritten when the stream back working is in progressing in order to keep master running.
@@ -190,24 +189,24 @@ public class ProcessorStreamBack {
 		} else {
 			String streamBackTaskState = updateJob.getConnectorConfig(ConstantApp.PK_TRANSFORM_STREAM_BACK_TASK_STATE);
 			LOG.debug("Found stream back state = " + streamBackTaskState);
-			if (!streamBackTaskState.equalsIgnoreCase(ConstantApp.DF_STATUS.FINISHED.name()))
-				if (streamBackTaskState.equalsIgnoreCase(ConstantApp.DF_STATUS.FAILED.name()))
+			if (!streamBackTaskState.equalsIgnoreCase(ConstantApp.DF_STATUS.FINISHED.name())) {
+				if (streamBackTaskState.equalsIgnoreCase(ConstantApp.DF_STATUS.FAILED.name())) {
 					HelpFunc.updateRepoWithLogging(c, COLLECTION,
 							updateJob.setStatus(ConstantApp.DF_STATUS.FAILED.name()), LOG);
-				else
+				} else {
 					c.findOne(COLLECTION, new JsonObject().put("_id", streamBackTaskId),
 							new JsonObject().put("status", 1), res -> {
-								if (!res.succeeded())
+								if (!res.succeeded()) {
 									LOG.error("Stream Back Task with Id = " + streamBackTaskId + " Not Found.");
-								else {
+								} else {
 									String workerStatus = res.result().getString("status");
 									LOG.debug("Stream back worker status = " + workerStatus);
 									if (workerStatus.equalsIgnoreCase(ConstantApp.DF_STATUS.FAILED.name())
-											|| workerStatus.equalsIgnoreCase(ConstantApp.DF_STATUS.LOST.name()))
+											|| workerStatus.equalsIgnoreCase(ConstantApp.DF_STATUS.LOST.name())) {
 										updateJob.setStatus(ConstantApp.DF_STATUS.FAILED.name()).setConnectorConfig(
 												ConstantApp.PK_TRANSFORM_STREAM_BACK_TASK_STATE,
 												ConstantApp.DF_STATUS.FAILED.name());
-									else {
+									} else {
 										LOG.debug("Checking streaming process result ...");
 										File dir = new File(streamBackFilePath);
 										int jsonFileNumber = ((List<File>) FileUtils.listFiles(dir,
@@ -218,11 +217,11 @@ public class ProcessorStreamBack {
 														new String[] { "processing" }, false)).size();
 										LOG.debug("jsonFileNumber = " + jsonFileNumber + " processedFileNumber = "
 												+ processedFileNumber);
-										if (jsonFileNumber != 0 || processedFileNumber < 0 || processingFileNumber != 0)
+										if (jsonFileNumber != 0 || processedFileNumber < 0 || processingFileNumber != 0) {
 											updateJob.setStatus(ConstantApp.DF_STATUS.STREAMING.name())
 													.setConnectorConfig(ConstantApp.PK_TRANSFORM_STREAM_BACK_TASK_STATE,
 															ConstantApp.DF_STATUS.RUNNING.name());
-										else {
+										} else {
 											updateJob.setStatus(ConstantApp.DF_STATUS.FINISHED.name())
 													.setConnectorConfig(ConstantApp.PK_TRANSFORM_STREAM_BACK_TASK_STATE,
 															ConstantApp.DF_STATUS.FINISHED.name());
@@ -232,20 +231,22 @@ public class ProcessorStreamBack {
 													.putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE,
 															ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
 													.send(ar -> {
-														if (ar.succeeded())
+														if (ar.succeeded()) {
 															LOG.info(DFAPIMessage.logResponseMessage(1031,
 																	updateJob.getId()));
-														else
+														} else {
 															LOG.error(DFAPIMessage.logResponseMessage(9043,
 																	updateJob.getId() + " has error "
 																			+ ar.result().bodyAsString()));
+														}
 													});
 										}
 									}
 									HelpFunc.updateRepoWithLogging(c, COLLECTION, updateJob, LOG);
 								}
 							});
+				}
+			}
 		}
-
     }
 }

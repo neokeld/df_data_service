@@ -2,14 +2,14 @@ package com.datafibers.model;
 
 import io.vertx.core.json.JsonObject;
 
-/**
- * Created by will on 2017-08-11.
- */
+/** Created by will on 2017-08-11. */
 public class DFLogPOPJ {
-
-    private String id; // id as pk, which is also used as task id
-    private String timestamp; // Identify each task order in a job
-    private String level; // Name of the task
+    /** Id as pk, which is also used as task id. */
+    private String id;
+    /** Identify each task order in a job. */
+    private String timestamp;
+    /** Name of the task. */
+    private String level;
     private String message;
     private String fileName;
     private String method;
@@ -27,7 +27,7 @@ public class DFLogPOPJ {
         this.message = message;
     }
 
-    // Used by
+    /** Used by. */
     public DFLogPOPJ(JsonObject json) {
         this.id = json.getJsonObject("_id").getString("$oid");
         this.timestamp = json.getJsonObject("timestamp").getString("$date");
@@ -37,7 +37,6 @@ public class DFLogPOPJ {
         this.lineNumber = json.getString("lineNumber");
         this.method = json.getString("method");
         this.message = json.getString("message");
-
     }
 
     public String getId() {

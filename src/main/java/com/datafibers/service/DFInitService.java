@@ -7,14 +7,11 @@ import com.datafibers.test_tool.UnitTestSuiteFlink;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
-
 public class DFInitService {
-
     private static final Logger LOG = Logger.getLogger(DFInitService.class);
     private static String runningMode;
 
     public static void main(String[] args) {
-
         welcome();
         LOG.info("********* DataFibers Services is starting.  *********");
 
@@ -26,10 +23,18 @@ public class DFInitService {
             Runner.runExample(DFDataProcessor.class);
             Runner.runExample(DFWebUI.class);
         } else {
-            if (runningMode.contains("ADMIN_TOOL")) runAdminTools();
-            if (runningMode.contains("TEST")) runTestCases();
-            if (runningMode.contains("Cluster")) Runner.runClusteredExample(DFDataProcessor.class);
-            if (runningMode.contains("Standalone")) Runner.runExample(DFDataProcessor.class);
+            if (runningMode.contains("ADMIN_TOOL")) {
+				runAdminTools();
+			}
+            if (runningMode.contains("TEST")) {
+				runTestCases();
+			}
+            if (runningMode.contains("Cluster")) {
+				Runner.runClusteredExample(DFDataProcessor.class);
+			}
+            if (runningMode.contains("Standalone")) {
+				Runner.runExample(DFDataProcessor.class);
+			}
             //if (runningMode.contains("WebUI")) Runner.runExample(DFWebUI.class);
         }
     }
@@ -76,7 +81,6 @@ public class DFInitService {
             new MongoAdminClient(para[0], Integer.parseInt(para[1]), para[2])
                     .truncateCollectionExcept(para[3], "connectorCategory", "INTERNAL")
                     .close();
-
         }
 
         if ("import_df_install".equalsIgnoreCase(adminTool) ||
@@ -88,8 +92,9 @@ public class DFInitService {
                     .close();
         }
 
-        if (!adminTool.contains("import_df_install(") && !adminTool.contains("idi("))
+        if (!adminTool.contains("import_df_install(") && !adminTool.contains("idi(")) {
 			return;
+		}
 		String[] para = StringUtils.substringBetween(adminTool, "(", ")").split(",");
 		LOG.info("Clean up all tasks (except internal) from repo at " + para[0] + ":" + para[1] + "/" + para[2] + "/"
 				+ para[3]);

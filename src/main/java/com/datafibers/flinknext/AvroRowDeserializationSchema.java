@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * <p>Failure during deserialization are forwarded as wrapped IOExceptions.
  */
 public class AvroRowDeserializationSchema implements DeserializationSchema<Row> {
-
     private static final long serialVersionUID = 0x3C192A12BCAC82DBL;
 
     /** Field names to parse. Indices match fieldTypes indices. */
@@ -42,7 +41,7 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
     /** Flag indicating whether to fail on a missing field. */
     private boolean failOnMissingField;
 
-    /** Generic Avro Schema reader for the row */
+    /** Generic Avro Schema reader for the row. */
     private transient GenericDatumReader<GenericRecord> reader;
 
     /** TODO - When schema changes, the Source table does not need to be recreated.*/
@@ -54,14 +53,14 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
      * @param fieldTypes Type classes to parse JSON fields as.
      */
     public AvroRowDeserializationSchema(String[] fieldNames, Class<?>[] fieldTypes, Properties properties) {
-
         Preconditions.checkNotNull(properties, "properties");
         static_avro_schema = properties.getProperty(ConstantApp.PK_SCHEMA_STR_INPUT);
 
         this.fieldNames = Preconditions.checkNotNull(fieldNames, "Field names");
         this.fieldTypes = new TypeInformation[fieldTypes.length];
-        for (int i = 0; i < fieldTypes.length; ++i)
+        for (int i = 0; i < fieldTypes.length; ++i) {
 			this.fieldTypes[i] = TypeExtractor.getForClass(fieldTypes[i]);
+		}
 
         Preconditions.checkArgument(fieldNames.length == fieldTypes.length,
                 "Number of provided field names and types does not match.");
@@ -74,7 +73,6 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
      * @param fieldTypes Types to parse AVRO fields as.
      */
     public AvroRowDeserializationSchema(String[] fieldNames, TypeInformation<?>[] fieldTypes, Properties properties) {
-
         Preconditions.checkNotNull(properties, "properties");
         static_avro_schema = properties.getProperty(ConstantApp.PK_SCHEMA_STR_INPUT);
 
@@ -91,27 +89,27 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
             BinaryDecoder decoder;
             ByteBuffer buffer = ByteBuffer.wrap(message);
 
-            if (buffer.get() != ConstantApp.MAGIC_BYTE)
+            if (buffer.get() != ConstantApp.MAGIC_BYTE) {
 				decoder = DecoderFactory.get().binaryDecoder(message, null);
-			else {
+			} else {
                 // For platform of confluent with SchemaRegister magic codec and dynamic schema
                 buffer.getInt(); // Do not comment it out. Or else, set start as 5
                 decoder = DecoderFactory.get().binaryDecoder(buffer.array(), buffer.position() + buffer.arrayOffset(),
 						buffer.limit() - ConstantApp.idSize - 1, null);
             }
-            
-            JsonNode root;
+                        JsonNode root;
             reader = new GenericDatumReader<>(new Schema.Parser().parse(static_avro_schema));//TODO get row level schema
             root = objectMapper.readTree(reader.read(null, decoder).toString());
             Row row = new Row(fieldNames.length);
             for (int i = 0; i < fieldNames.length; ++i) {
                 JsonNode node = root.get(fieldNames[i]);
 
-                if (node != null)
+                if (node != null) {
 					row.setField(i, objectMapper.treeToValue(node, fieldTypes[i].getTypeClass()));
-				else {
-					if (failOnMissingField)
+				} else {
+					if (failOnMissingField) {
 						throw new IllegalStateException("Failed to find field with name '" + fieldNames[i] + "'.");
+					}
 					row.setField(i, null);
 				}
             }
@@ -142,5 +140,4 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
     public void setFailOnMissingField(boolean failOnMissingField) {
         this.failOnMissingField = failOnMissingField;
     }
-
 }

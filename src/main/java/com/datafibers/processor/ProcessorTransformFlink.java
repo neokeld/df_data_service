@@ -14,7 +14,7 @@ public class ProcessorTransformFlink {
     private static final Logger LOG = Logger.getLogger(ProcessorTransformFlink.class);
 
     /**
-     * forwardPostAsSubmitJar is a generic function to submit specific jar file with proper configurations, such as jar para,
+     * ForwardPostAsSubmitJar is a generic function to submit specific jar file with proper configurations, such as jar para,
      * to the Flink Rest API. This is used for Flink SQL, UDF, and Table API submission with different client class.
      * This function will not response df ui. Since the UI is refreshed right way. Submit status will refreshed in status
      * thread separately.
@@ -36,36 +36,39 @@ public class ProcessorTransformFlink {
                                       String allowNonRestoredState, String savepointPath, String entryClass,
                                       String parallelism, String programArgs) {
         String taskId = j.getId();
-        if (jarId.isEmpty())
+        if (jarId.isEmpty()) {
 			LOG.error(DFAPIMessage.logResponseMessage(9000, taskId));
-		else
+		} else {
 			c.post(flinkRestPort, flinkRestHost, ConstantApp.FLINK_REST_URL_JARS + "/" + jarId + "/run")
 					.addQueryParam("allowNonRestoredState", allowNonRestoredState)
 					.addQueryParam("savepointPath", savepointPath).addQueryParam("entry-class", entryClass)
 					.addQueryParam("parallelism", parallelism)
 					.addQueryParam("allowNonRestoredState", allowNonRestoredState)
 					.addQueryParam("program-args", programArgs).send(ar -> {
-						if (!ar.succeeded())
+						if (!ar.succeeded()) {
 							LOG.error(DFAPIMessage.logResponseMessage(9010, taskId + " details - " + ar.cause()));
-						else {
+						} else {
 							String flinkJobId = ar.result().bodyAsJsonObject()
 									.getString(ConstantApp.FLINK_JOB_SUBMIT_RESPONSE_KEY),
 									flinkError = ar.result().bodyAsJsonObject()
 											.getString(ConstantApp.FLINK_JOB_ERROR_RESPONSE_KEY);
-							if (flinkJobId != null)
+							if (flinkJobId != null) {
 								j.setFlinkIDToJobConfig(flinkJobId).setStatus(ConstantApp.DF_STATUS.RUNNING.name());
+							}
 							LOG.debug("dfJob to Json = " + j.toJson());
 							mongo.updateCollection(taskCollection, new JsonObject().put("_id", taskId),
 									new JsonObject().put("$set", j.toJson()), v -> {
-										if (v.failed() || flinkJobId == null)
+										if (v.failed() || flinkJobId == null) {
 											LOG.error(DFAPIMessage.logResponseMessage(1001,
 													taskId + " has error " + flinkError));
-										else
+										} else {
 											LOG.info(DFAPIMessage.logResponseMessage(1005,
 													taskId + " flinkJobId = " + flinkJobId));
+										}
 									});
 						}
 					});
+		}
     }
 
     /**
@@ -84,9 +87,9 @@ public class ProcessorTransformFlink {
                                                 MongoClient mongoClient, String mongoCOLLECTION,
                                                 String flinkRestHost, int flinkRestPort, String jobID) {
         String id = c.request().getParam("id");
-        if (jobID == null || jobID.trim().isEmpty())
+        if (jobID == null || jobID.trim().isEmpty()) {
 			LOG.error(DFAPIMessage.logResponseMessage(9000, id));
-		else
+		} else {
 			webClient.delete(flinkRestPort, flinkRestHost, ConstantApp.FLINK_REST_URL + "/" + jobID + "/cancel")
 					.putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE, ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
 					.sendJsonObject(DFAPIMessage.getResponseJsonObj(1002), ar -> {
@@ -104,8 +107,8 @@ public class ProcessorTransformFlink {
 							LOG.info(DFAPIMessage.logResponseMessage(response, id));
 						}
 					});
+		}
     }
-
 
     /**
      * This method restart a flink job by cancel it then submit through Flink rest API
@@ -126,9 +129,9 @@ public class ProcessorTransformFlink {
                                               String allowNonRestoredState, String savepointPath, String entryClass,
                                               String parallelism, String programArgs) {
         String id = c.request().getParam("id");
-        if (jobID == null || jobID.trim().isEmpty())
+        if (jobID == null || jobID.trim().isEmpty()) {
 			LOG.error(DFAPIMessage.logResponseMessage(9000, id));
-		else
+		} else {
 			webClient.delete(flinkRestPort, flinkRestHost, ConstantApp.FLINK_REST_URL + "/" + jobID + "/cancel")
 					.putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE, ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
 					.sendJsonObject(DFAPIMessage.getResponseJsonObj(1002), ar -> {
@@ -144,6 +147,7 @@ public class ProcessorTransformFlink {
 									programArgs);
 						}
 					});
+		}
     }
 
     /**
@@ -161,14 +165,13 @@ public class ProcessorTransformFlink {
     public static void forwardGetAsJobStatus(RoutingContext c, WebClient webClient,
                                              String flinkRestHost, int flinkRestPort,
                                              String taskId, String jobId) {
-
         if (jobId == null || jobId.trim().isEmpty()) {
             LOG.warn(DFAPIMessage.logResponseMessage(9000, taskId));
             HelpFunc.responseCorsHandleAddOn(c.response())
                     .setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
                     .end(DFAPIMessage.getResponseMessage(9000, taskId,
                             "Cannot Get State Without JobId."));
-        } else
+        } else {
 			webClient.get(flinkRestPort, flinkRestHost, ConstantApp.FLINK_REST_URL + "/" + jobId)
 					.putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE, ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
 					.sendJsonObject(DFAPIMessage.getResponseJsonObj(1003), ar -> {
@@ -180,18 +183,20 @@ public class ProcessorTransformFlink {
 						} else {
 							JsonObject jo = ar.result().bodyAsJsonObject();
 							JsonArray subTaskArray = jo.getJsonArray("vertices");
-							for (int i = 0; i < subTaskArray.size(); ++i)
+							for (int i = 0; i < subTaskArray.size(); ++i) {
 								subTaskArray.getJsonObject(i)
 										.put("subTaskId", subTaskArray.getJsonObject(i).getString("id"))
 										.put("id", taskId + "_" + subTaskArray.getJsonObject(i).getString("id"))
 										.put("jobId", jo.getString("jid"))
 										.put("dfTaskState", HelpFunc.getTaskStatusFlink(jo))
 										.put("taskState", jo.getString("state"));
+							}
 							HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
-									.putHeader("X-Total-Count", subTaskArray.size() + "")
+									.putHeader("X-Total-Count", String.valueOf(subTaskArray.size()))
 									.end(Json.encodePrettily(subTaskArray.getList()));
 							LOG.info(DFAPIMessage.logResponseMessage(1024, taskId));
 						}
 					});
+		}
     }
 }

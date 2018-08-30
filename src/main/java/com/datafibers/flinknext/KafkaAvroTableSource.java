@@ -18,7 +18,6 @@ import com.datafibers.util.SchemaRegistryClient;
  * <p>The field names are used to parse the AVRO file and so are the types.
  */
 public abstract class KafkaAvroTableSource extends KafkaTableSource {
-
     /**
      * Creates a generic Kafka AVRO {@link StreamTableSource}.
      *
@@ -32,12 +31,11 @@ public abstract class KafkaAvroTableSource extends KafkaTableSource {
             Properties properties,
             String[] fieldNames,
             Class<?>[] fieldTypes) {
-
         super(topic, properties, createDeserializationSchema(fieldNames, fieldTypes, properties), fieldNames, fieldTypes);
     }
 
     /**
-     * Creates a generic Kafka AVRO with fields and types derived from Schema Registry
+     * Creates a generic Kafka AVRO with fields and types derived from Schema Registry.
      * @param topic
      * @param properties
      */
@@ -66,7 +64,6 @@ public abstract class KafkaAvroTableSource extends KafkaTableSource {
             Properties properties,
             String[] fieldNames,
             TypeInformation<?>[] fieldTypes) {
-
         super(topic, properties, createDeserializationSchema(fieldNames, fieldTypes, properties), fieldNames, fieldTypes);
     }
 
@@ -84,14 +81,12 @@ public abstract class KafkaAvroTableSource extends KafkaTableSource {
     private static AvroRowDeserializationSchema createDeserializationSchema(
             String[] fieldNames,
             TypeInformation<?>[] fieldTypes, Properties p) {
-
         return new AvroRowDeserializationSchema(fieldNames, fieldTypes, p);
     }
 
     private static AvroRowDeserializationSchema createDeserializationSchema(
             String[] fieldNames,
             Class<?>[] fieldTypes, Properties p) {
-
         return new AvroRowDeserializationSchema(fieldNames, fieldTypes, p);
     }
 }

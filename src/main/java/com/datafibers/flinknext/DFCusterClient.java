@@ -31,7 +31,6 @@ import com.datafibers.model.DFJobPOPJ;
  * immediately before submit Flink job.
  */
 public class DFCusterClient extends ClusterClient {
-
     public DFCusterClient(Configuration config) throws Exception {
         super(config);
     }
@@ -42,7 +41,7 @@ public class DFCusterClient extends ClusterClient {
     @Override
 	@SuppressWarnings("deprecation")
 	public String getWebInterfaceURL() {
-		return "http://" + this.getJobManagerAddress().getHostString() + ":" + getFlinkConfiguration().getInteger(
+		return "http://" + getJobManagerAddress().getHostString() + ":" + getFlinkConfiguration().getInteger(
 				ConfigConstants.JOB_MANAGER_WEB_PORT_KEY, ConfigConstants.DEFAULT_JOB_MANAGER_WEB_FRONTEND_PORT);
 	}
 
@@ -52,8 +51,9 @@ public class DFCusterClient extends ClusterClient {
         try {
 			jmGateway = getJobManagerGateway();
 			Object result = Await.result(jmGateway.ask(GetClusterStatus.getInstance(), timeout), timeout);
-			if (!(result instanceof GetClusterStatusResponse))
+			if (!(result instanceof GetClusterStatusResponse)) {
 				throw new RuntimeException("Received the wrong reply " + result + " from cluster.");
+			}
 			return (GetClusterStatusResponse) result;
 		} catch (Exception e) {
             throw new RuntimeException("Couldn't retrieve the Cluster status.", e);
@@ -68,7 +68,7 @@ public class DFCusterClient extends ClusterClient {
     @Override
     public String getClusterIdentifier() {
         // Avoid blocking here by getting the address from the config without resolving the address
-        return "DF Standalone cluster with JobManager at " + this.getJobManagerAddress();
+        return "DF Standalone cluster with JobManager at " + getJobManagerAddress();
     }
 
     @Override
@@ -85,7 +85,6 @@ public class DFCusterClient extends ClusterClient {
     @Override
     protected void finalizeCluster() {}
 
-
     public JobSubmissionResult runWithDFObj(
             FlinkPlan compiledPlan, List<URL> libraries, List<URL> classpaths, ClassLoader l, DFJobPOPJ j) throws ProgramInvocationException {
         return runWithDFObj(compiledPlan, libraries, classpaths, l, SavepointRestoreSettings.none(), j);
@@ -100,33 +99,29 @@ public class DFCusterClient extends ClusterClient {
 		return submitJob(job, l);
 		}
 
-
 	private JobGraph getJobGraph(FlinkPlan optPlan, List<URL> jarFiles, List<URL> classpaths, SavepointRestoreSettings savepointSettings) {
 		JobGraph job;
-		if (!(optPlan instanceof StreamingPlan))
-			job = (new JobGraphGenerator(this.flinkConfig)).compileJobGraph((OptimizedPlan) optPlan);
-		else {
+		if (!(optPlan instanceof StreamingPlan)) {
+			job = new JobGraphGenerator(this.flinkConfig).compileJobGraph((OptimizedPlan) optPlan);
+		} else {
 			job = ((StreamingPlan) optPlan).getJobGraph();
 			job.setSavepointRestoreSettings(savepointSettings);
 		}
 
-		for (URL jar : jarFiles)
+		for (URL jar : jarFiles) {
 			try {
 				job.addJar(new Path(jar.toURI()));
 			} catch (URISyntaxException e) {
 				throw new RuntimeException("URL is invalid. This should not happen.", e);
 			}
- 
-		job.setClasspaths(classpaths);
+		}
+ 		job.setClasspaths(classpaths);
 
 		return job;
 	}
 
-
 	@Override
 	public boolean hasUserJarsInClassPath(List<URL> arg0) {
-		// TODO Auto-generated method stub
 		return false;
 	}
-
 }

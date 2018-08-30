@@ -17,14 +17,11 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * MongoDB Client
- */
+/** MongoDB Client. */
 public class MongoAdminClient {
     private MongoClient mongoClient;
     private MongoDatabase database;
     private MongoCollection<Document> collection;
-
 
     public MongoAdminClient(String hostname, int port, String database) {
         this.mongoClient = new MongoClient(hostname, port );
@@ -43,49 +40,57 @@ public class MongoAdminClient {
     }
 
     public MongoAdminClient truncateCollection(String colName) {
-        if(collectionExists(colName))
-        this.database.getCollection(colName).deleteMany(exists("_id")); //TODO consider to add date filter
+        if(collectionExists(colName)) {
+			this.database.getCollection(colName).deleteMany(exists("_id"));
+		} //TODO consider to add date filter
         return this;
     }
 
     public MongoAdminClient truncateCollectionExcept(String colName, String key, String value) {
-        if(collectionExists(colName))
-            this.database.getCollection(colName).deleteMany(ne(key, value));
+        if(collectionExists(colName)) {
+			this.database.getCollection(colName).deleteMany(ne(key, value));
+		}
         return this;
     }
 
     public MongoAdminClient dropCollection(String colName) {
-        if(collectionExists(colName))
-        this.database.getCollection(colName).drop();
+        if(collectionExists(colName)) {
+			this.database.getCollection(colName).drop();
+		}
         return this;
     }
 
     public MongoAdminClient createCollection(String colName) {
-        if(!collectionExists(colName))
-        this.database.createCollection(colName);
+        if(!collectionExists(colName)) {
+			this.database.createCollection(colName);
+		}
         return this;
     }
 
     public MongoAdminClient useCollection(String colName) {
-        if(collectionExists(colName))
-            this.collection = this.database.getCollection(colName);
+        if(collectionExists(colName)) {
+			this.collection = this.database.getCollection(colName);
+		}
         return this;
     }
 
     public boolean collectionExists(String collectionName) {
-        if (this.database == null)
+        if (this.database == null) {
 			return false;
+		}
 		final MongoIterable<String> iterable = database.listCollectionNames();
 		try (MongoCursor<String> it = iterable.iterator()) {
-			while (it.hasNext())
-				if (it.next().equalsIgnoreCase(collectionName))
+			while (it.hasNext()) {
+				if (it.next().equalsIgnoreCase(collectionName)) {
 					return true;
+				}
+			}
 		}
 		return false;
     }
 
     /**
-     * Lookup A collection using specific key and value and return value from another value
+     * Lookup A collection using specific key and value and return value from another value.
      * @param lkpKey
      * @param lkpValue
      * @param lkpReturnedKey
@@ -113,8 +118,9 @@ public class MongoAdminClient {
             fnfe.printStackTrace();
         }
 
-        if (count > 0)
+        if (count > 0) {
 			collection.bulkWrite(docs, new BulkWriteOptions().ordered(false));
+		}
 
         return this;
     }
@@ -137,8 +143,9 @@ public class MongoAdminClient {
             fnfe.printStackTrace();
         }
 
-        if (count > 0)
+        if (count > 0) {
 			collection.bulkWrite(docs, new BulkWriteOptions().ordered(false));
+		}
 
         return this;
     }

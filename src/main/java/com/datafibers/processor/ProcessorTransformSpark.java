@@ -20,14 +20,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 /**
- * This is the utility class to communicate with Spark through Apache Livy Rest Service
+ * This is the utility class to communicate with Spark through Apache Livy Rest Service.
  */
 
 public class ProcessorTransformSpark {
     private static final Logger LOG = Logger.getLogger(ProcessorTransformSpark.class);
 
     /**
-     * forwardPostAsAddJar is a generic function to submit any spark jar to the livy.
+     * ForwardPostAsAddJar is a generic function to submit any spark jar to the livy.
      * This function is equal to the spark-submit. Submit status will refreshed in status thread separately.
      */
     public static void forwardPostAsAddJar(Vertx v, WebClient c, DFJobPOPJ j, MongoClient mongo,
@@ -36,7 +36,7 @@ public class ProcessorTransformSpark {
     }
 
     /**
-     * forwardPostAsAddOne is a generic function to submit pyspark code taking sql statement to the livy.
+     * ForwardPostAsAddOne is a generic function to submit pyspark code taking sql statement to the livy.
      * This function will not response df ui. Since the UI is refreshed right way. Submit status will refreshed in status
      * thread separately.
      *
@@ -62,25 +62,26 @@ public class ProcessorTransformSpark {
                                 String idleSessionId = "";
                                 JsonArray sessionArray = sar.result().bodyAsJsonObject().getJsonArray("sessions");
 
-                                for (int i = 0; i < sessionArray.size(); ++i)
+                                for (int i = 0; i < sessionArray.size(); ++i) {
 									if ("idle".equalsIgnoreCase(sessionArray.getJsonObject(i).getString("state"))) {
 										idleSessionId = sessionArray.getJsonObject(i).getInteger("id").toString();
 										break;
 									}
+								}
 
-                                if (!"".equalsIgnoreCase(idleSessionId))
+                                if (!"".equalsIgnoreCase(idleSessionId)) {
 									addStatementToSession(c, j, sparkRestHost, sparkRestPort, mongo, taskCollection,
 											idleSessionId, rawResBody);
-								else
+								} else {
 									c.post(sparkRestPort, sparkRestHost, ConstantApp.LIVY_REST_URL_SESSIONS)
 											.putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE,
 													ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
 											.sendJsonObject(new JsonObject().put("name", "df"), ar -> {
-												if (!ar.succeeded())
+												if (!ar.succeeded()) {
 													LOG.error(DFAPIMessage.logResponseMessage(9010,
 															taskId + " Start new session failed with details - "
 																	+ ar.cause()));
-												else {
+												} else {
 													String newSessionId = ar.result().bodyAsJsonObject()
 															.getInteger("id").toString();
 													j.setJobConfig(ConstantApp.PK_LIVY_SESSION_ID, newSessionId);
@@ -90,29 +91,31 @@ public class ProcessorTransformSpark {
 													WorkerExecutor executor = v.createSharedWorkerExecutor(taskId,
 															ConstantApp.WORKER_POOL_SIZE, ConstantApp.MAX_RUNTIME);
 													executor.executeBlocking(future -> {
-														for (HttpResponse<JsonNode> res;;)
+														for (HttpResponse<JsonNode> res;;) {
 															try {
 																res = Unirest.get(restURL).header(
 																		ConstantApp.HTTP_HEADER_CONTENT_TYPE,
 																		ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
 																		.asJson();
 																if ("idle".equalsIgnoreCase(
-																		res.getBody().getObject().getString("state")))
+																		res.getBody().getObject().getString("state"))) {
 																	break;
+																}
 																Thread.sleep(2000);
 															} catch (UnirestException | InterruptedException e) {
 																LOG.error(DFAPIMessage.logResponseMessage(9006,
 																		"exception - " + e.getCause()));
 															}
+														}
 														addStatementToSession(c, j, sparkRestHost, sparkRestPort, mongo,
 																taskCollection, newSessionId, rawResBody);
 													}, res -> {
 													});
 												}
 											});
+								}
                             }
                 });
-
     }
 
     /**
@@ -132,9 +135,9 @@ public class ProcessorTransformSpark {
                                                 MongoClient mongoClient, String mongoCOLLECTION,
                                                 String sparkRestHost, int sparkRestPort, String sessionId) {
         String id = c.request().getParam("id");
-        if (sessionId == null || sessionId.trim().isEmpty())
+        if (sessionId == null || sessionId.trim().isEmpty()) {
 			LOG.error(DFAPIMessage.logResponseMessage(9000, "sessionId is null in task " + id));
-		else
+		} else {
 			webClient.get(sparkRestPort, sparkRestHost, ConstantApp.LIVY_REST_URL_SESSIONS + "/" + sessionId + "/state")
 					.putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE, ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
 					.send(sar -> {
@@ -145,7 +148,7 @@ public class ProcessorTransformSpark {
 											.setStatusCode(ConstantApp.STATUS_CODE_OK)
 											.end(DFAPIMessage.getResponseMessage(1002, id)));
 							LOG.info(DFAPIMessage.logResponseMessage(1002, id));
-						} else
+						} else {
 							webClient
 									.delete(sparkRestPort, sparkRestHost,
 											ConstantApp.LIVY_REST_URL_SESSIONS + "/" + sessionId)
@@ -168,7 +171,9 @@ public class ProcessorTransformSpark {
 											LOG.info(DFAPIMessage.logResponseMessage(response, id));
 										}
 									});
+						}
 					});
+		}
     }
 
     /**
@@ -185,24 +190,24 @@ public class ProcessorTransformSpark {
     public static void forwardPutAsUpdateOne(Vertx v, WebClient c,
                                              DFJobPOPJ j, MongoClient mongoClient,
                                              String taskCollection, String sparkRestHost, int sparkRestPort) {
-
         // When session id is not available, use new/idle session to add new statement
         if(j.getJobConfig() == null ||
-                (j.getJobConfig() != null && !j.getJobConfig().containsKey(ConstantApp.PK_LIVY_STATEMENT_ID)))
+                (j.getJobConfig() != null && !j.getJobConfig().containsKey(ConstantApp.PK_LIVY_STATEMENT_ID))) {
 			forwardPostAsAddOne(v, c, j, mongoClient, taskCollection, sparkRestHost, sparkRestPort, "");
-		else {
+		} else {
             String sessionId = j.getJobConfig().get(ConstantApp.PK_LIVY_STATEMENT_ID);
             c.get(sparkRestPort, sparkRestHost,
                     ConstantApp.LIVY_REST_URL_SESSIONS + "/" + sessionId + "/state")
                     .putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE,
                             ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
                     .send(sar -> { // If session is active, we always wait
-                                if (!sar.succeeded() || sar.result().statusCode() != ConstantApp.STATUS_CODE_OK)
+                                if (!sar.succeeded() || sar.result().statusCode() != ConstantApp.STATUS_CODE_OK) {
 									forwardPostAsAddOne(v, c, j, mongoClient, taskCollection, sparkRestHost,
 											sparkRestPort, "");
-								else
+								} else {
 									addStatementToSession(c, j, sparkRestHost, sparkRestPort, mongoClient,
 											taskCollection, sessionId, "");
+								}
                     });
         }
     }
@@ -216,11 +221,9 @@ public class ProcessorTransformSpark {
      * @param webClient This is vertx non-blocking web client used for forwarding
      * @param sparkRestHost flink rest hostname
      * @param sparkRestPort flink rest port number
-     *
      */
     public static void forwardGetAsJobStatus(RoutingContext c, WebClient webClient, DFJobPOPJ j,
                                              String sparkRestHost, int sparkRestPort) {
-
         String sessionId = j.getJobConfig().get(ConstantApp.PK_LIVY_SESSION_ID),
 				statementId = j.getJobConfig().get(ConstantApp.PK_LIVY_STATEMENT_ID), taskId = j.getId();
         if (sessionId == null || sessionId.trim().isEmpty() || statementId == null || statementId.trim().isEmpty()) {
@@ -229,7 +232,7 @@ public class ProcessorTransformSpark {
                     .setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
                     .end(DFAPIMessage.getResponseMessage(9000, taskId,
                             "Cannot Get State Without Session Id/Statement Id."));
-        } else
+        } else {
 			webClient
 					.get(sparkRestPort, sparkRestHost,
 							ConstantApp.LIVY_REST_URL_SESSIONS + "/" + sessionId + ConstantApp.LIVY_REST_URL_STATEMENTS)
@@ -245,7 +248,7 @@ public class ProcessorTransformSpark {
 							JsonObject jo = ar.result().bodyAsJsonObject();
 							System.out.println("get status = " + jo);
 							JsonArray subTaskArray = jo.getJsonArray("statements"), statusArray = new JsonArray();
-							for (int i = 0; i < subTaskArray.size(); ++i)
+							for (int i = 0; i < subTaskArray.size(); ++i) {
 								statusArray
 										.add(new JsonObject()
 												.put("subTaskId",
@@ -261,13 +264,15 @@ public class ProcessorTransformSpark {
 												.put("statement", subTaskArray.getJsonObject(i).getString("code"))
 												.put("output", HelpFunc
 														.livyTableResultToRichText(subTaskArray.getJsonObject(i))));
+							}
 							System.out.println("get status of array = " + statusArray);
 							HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
-									.putHeader("X-Total-Count", statusArray.size() + "")
+									.putHeader("X-Total-Count", String.valueOf(statusArray.size()))
 									.end(Json.encodePrettily(statusArray.getList()));
 							LOG.info(DFAPIMessage.logResponseMessage(1024, taskId));
 						}
 					});
+		}
     }
 
     /**
@@ -285,35 +290,35 @@ public class ProcessorTransformSpark {
                                               String sparkRestHost, int sparkRestPort,
                                               MongoClient mongo, String taskCollection,
                                               String sessionId, String rawResBody) {
-
         String connectType = j.getConnectorType(), codeKind = "spark", code = "";
         // Here set stream back information. Later, the spark job status checker will upload the file to kafka
         Boolean streamBackFlag = false;
         String streamBackBasePath = "";
         if(j.getConnectorConfig().containsKey(ConstantApp.PK_TRANSFORM_STREAM_BACK_FLAG) &&
-                        j.getConnectorConfig().get(ConstantApp.PK_TRANSFORM_STREAM_BACK_FLAG).toString()
+                        j.getConnectorConfig().get(ConstantApp.PK_TRANSFORM_STREAM_BACK_FLAG)
                         .contentEquals("true")) {
             streamBackFlag = true;
             streamBackBasePath = ConstantApp.TRANSFORM_STREAM_BACK_PATH + "/" + j.getId() + "/";
             j.getConnectorConfig().put(ConstantApp.PK_TRANSFORM_STREAM_BACK_PATH, streamBackBasePath); //set full path
         }
 
-        if(connectType.equalsIgnoreCase(ConstantApp.DF_CONNECT_TYPE.TRANSFORM_EXCHANGE_SPARK_SQL.name()))
+        if(connectType.equalsIgnoreCase(ConstantApp.DF_CONNECT_TYPE.TRANSFORM_EXCHANGE_SPARK_SQL.name())) {
 			code = HelpFunc.sqlToSparkScala(
 					HelpFunc.sqlCleaner(j.getConnectorConfig().get(ConstantApp.PK_TRANSFORM_SQL)), streamBackFlag,
 					streamBackBasePath);
-		else if (connectType.equalsIgnoreCase(ConstantApp.DF_CONNECT_TYPE.TRANSFORM_MODEL_SPARK_TRAIN.name()))
+		} else if (connectType.equalsIgnoreCase(ConstantApp.DF_CONNECT_TYPE.TRANSFORM_MODEL_SPARK_TRAIN.name())) {
 			if ("FALSE".equalsIgnoreCase(j.getConnectorConfig().get(ConstantApp.PK_TRANSFORM_MT_GUIDE_ENABLE))) {
 				code = StringUtils.substringBefore(j.getConnectorConfig().get(ConstantApp.PK_TRANSFORM_MT_CODE), "//");
 				codeKind = j.getConnectorConfig().get(ConstantApp.PK_TRANSFORM_MT_CODE_KIND);
 			} else {
 				System.out.println("ML using guideline");
 				System.out.println(
-						"ML code generator source = " + j.toJson().getJsonObject("connectorConfig").toString());
+						"ML code generator source = " + j.toJson().getJsonObject("connectorConfig"));
 				code = HelpFunc.mlGuideToScalaSpark(j.toJson().getJsonObject("connectorConfig"));
 				j.setConnectorConfig(ConstantApp.PK_TRANSFORM_MT_CODE, code);
 				System.out.println("ML code generated = " + code);
 			}
+		}
 
         c.post(sparkRestPort, sparkRestHost,
                 ConstantApp.LIVY_REST_URL_SESSIONS + "/" + sessionId +
@@ -338,11 +343,12 @@ public class ProcessorTransformSpark {
 
                                 mongo.updateCollection(taskCollection, new JsonObject().put("_id", j.getId()),
                                         new JsonObject().put("$set", j.toJson()), v -> {
-                                            if (!v.failed())
+                                            if (!v.failed()) {
 												LOG.info(DFAPIMessage.logResponseMessage(1005, j.getId()));
-											else
+											} else {
 												LOG.error(DFAPIMessage.logResponseMessage(1001,
 														j.getId() + "error = " + v.cause()));
+											}
                                         }
                                 );
                             }
@@ -361,7 +367,6 @@ public class ProcessorTransformSpark {
     @Deprecated
     public static void forwardGetAsJobStatusFromRepo(RoutingContext c, WebClient webClient, DFJobPOPJ j,
                                              String sparkRestHost, int sparkRestPort) {
-
         String sessionId = j.getJobConfig().get(ConstantApp.PK_LIVY_SESSION_ID),
 				statementId = j.getJobConfig().get(ConstantApp.PK_LIVY_STATEMENT_ID), taskId = j.getId();
         if (sessionId == null || sessionId.trim().isEmpty() || statementId == null || statementId.trim().isEmpty()) {
@@ -370,7 +375,7 @@ public class ProcessorTransformSpark {
                     .setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
                     .end(DFAPIMessage.getResponseMessage(9000, taskId,
                             "Cannot Get State Without Session Id/Statement Id."));
-        } else
+        } else {
 			webClient
 					.get(sparkRestPort, sparkRestHost,
 							ConstantApp.LIVY_REST_URL_SESSIONS + "/" + sessionId + ConstantApp.LIVY_REST_URL_STATEMENTS)
@@ -385,7 +390,7 @@ public class ProcessorTransformSpark {
 						} else {
 							JsonArray subTaskArray = ar.result().bodyAsJsonObject().getJsonArray("statements"),
 									statusArray = new JsonArray();
-							for (int i = 0; i < subTaskArray.size(); ++i)
+							for (int i = 0; i < subTaskArray.size(); ++i) {
 								statusArray
 										.add(new JsonObject()
 												.put("subTaskId",
@@ -405,14 +410,14 @@ public class ProcessorTransformSpark {
 														+ "  <tr><td>Eve</td><td>Jackson</td><td>94</td></tr>\n"
 														+ "  <tr><td>John</td><td>Doe</td><td>80</td></tr>\n"
 														+ "</table>"));
+							}
 							System.out.println("get status of array = " + statusArray);
 							HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
-									.putHeader("X-Total-Count", statusArray.size() + "")
+									.putHeader("X-Total-Count", String.valueOf(statusArray.size()))
 									.end(Json.encodePrettily(statusArray.getList()));
 							LOG.info(DFAPIMessage.logResponseMessage(1024, taskId));
 						}
 					});
+		}
     }
-
-
 }

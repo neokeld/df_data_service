@@ -34,7 +34,7 @@ public class ProcessorTopicSchemaRegistry {
      */
     public static void forwardGetAllSchemas(Vertx v, RoutingContext c,
                                             String schema_registry_host_and_port) {
-        StringBuffer returnString = new StringBuffer();
+        StringBuilder returnString = new StringBuilder();
         WorkerExecutor executor = v.createSharedWorkerExecutor("forwardGetAllSchemas_pool_" + new ObjectId(),
                 ConstantApp.WORKER_POOL_SIZE, ConstantApp.MAX_RUNTIME);
         executor.executeBlocking(future -> {
@@ -46,49 +46,53 @@ public class ProcessorTopicSchemaRegistry {
                         .header("accept", ConstantApp.AVRO_REGISTRY_CONTENT_TYPE)
                         .asString();
 
-                if (res == null)
+                if (res == null) {
 					status_code = ConstantApp.STATUS_CODE_BAD_REQUEST;
-				else if (res.getStatus() != ConstantApp.STATUS_CODE_OK)
+				} else if (res.getStatus() != ConstantApp.STATUS_CODE_OK) {
 					status_code = res.getStatus();
-				else {
+				} else {
                     String subjects = res.getBody();
                     // ["Kafka-value","Kafka-key"]
                     LOG.debug("All subjects received are " + subjects);
-                    StringBuffer strBuff = new StringBuffer();
+                    StringBuilder strBuff = new StringBuilder();
                     int count = 0;
                     if (subjects.compareToIgnoreCase("[]") != 0) { // Has active subjects
                         for (String subject : subjects.substring(2, subjects.length() - 2).split("\",\"")) {
                             // If the subject is internal one, such as topic-key or topic-value
-                            if(subject.contains("df_meta") || subject.contains("-value") || subject.contains("-key"))
-                                continue;
+                            if(subject.contains("df_meta") || subject.contains("-value") || subject.contains("-key")) {
+								continue;
+							}
 
                             HttpResponse<JsonNode> resSubject = Unirest
                                     .get(restURI + "/" + subject + "/versions/latest")
                                     .header("accept", ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
                                     .asJson();
-                            if (resSubject == null)
+                            if (resSubject == null) {
 								status_code = ConstantApp.STATUS_CODE_BAD_REQUEST;
-							else if (resSubject.getStatus() != ConstantApp.STATUS_CODE_OK)
+							} else if (resSubject.getStatus() != ConstantApp.STATUS_CODE_OK) {
 								status_code = resSubject.getStatus();
-							else {
+							} else {
                                 JSONObject jsonSchema = resSubject.getBody().getObject();
                                 String compatibility =
                                         getCompatibilityOfSubject(schema_registry_host_and_port, subject);
-                                if (compatibility == null || compatibility.isEmpty())
-                                    compatibility = "NONE";
+                                if (compatibility == null || compatibility.isEmpty()) {
+									compatibility = "NONE";
+								}
                                 jsonSchema.put(ConstantApp.SCHEMA_REGISTRY_KEY_COMPATIBILITY, compatibility);
                                 // Repack subject to id, id to schema id
                                 jsonSchema.put("schemaId", jsonSchema.get("id"));
                                 jsonSchema.put("id", subject);
                                 String schema = jsonSchema.toString();
-                                if (count == 0)
-                                    strBuff.append("[");
+                                if (count == 0) {
+									strBuff.append("[");
+								}
                                 ++count;
                                 strBuff.append(schema).append(",");
                             }
                         }
-                        if (count > 0)
-                            returnString.append(strBuff.toString().substring(0, strBuff.toString().length() - 1) + "]");
+                        if (count > 0) {
+							returnString.append(strBuff.toString(), 0, strBuff.toString().length() - 1).append("]");
+						}
                         //LOG.debug("returnString: " + returnString.toString());
                     }
                 }
@@ -100,14 +104,15 @@ public class ProcessorTopicSchemaRegistry {
         }, res -> {
             Object result = HelpFunc.coalesce(res.result(), ConstantApp.STATUS_CODE_BAD_REQUEST);
             try {
-                if (returnString == null || returnString.toString().isEmpty())
+                if (returnString == null || returnString.toString().isEmpty()) {
 					HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(Integer.parseInt(result.toString()))
 							.putHeader("X-Total-Count", "0").end("[]");
-				else
+				} else {
 					HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(Integer.parseInt(result.toString()))
-							.putHeader("X-Total-Count", new JSONArray(returnString.toString()).length() + "")
+							.putHeader("X-Total-Count", String.valueOf(new JSONArray(returnString.toString()).length()))
 							.end(HelpFunc.stringToJsonFormat(
 									HelpFunc.sortJsonArray(c, new JSONArray(returnString.toString())).toString()));
+				}
             } catch (JSONException je) {
                 LOG.error(DFAPIMessage.logResponseMessage(9027, " exception - " + je.getCause()));
             }
@@ -163,17 +168,15 @@ public class ProcessorTopicSchemaRegistry {
      */
     public static void forwardAddOneSchema(RoutingContext c, WebClient webClient,
                                            String schemaRegistryRestHost, int schemaRegistryRestPort) {
-
         addOneSchemaCommon(c, webClient,
                 schemaRegistryRestHost, schemaRegistryRestPort,
                 "Schema is created.", 1025,
                 "Schema creation is failed", 9039
         );
-
     }
 
     /**
-     * Update one schema including compatibility to schema registry with non-blocking rest client
+     * Update one schema including compatibility to schema registry with non-blocking rest client.
      *
      * @param c This is the connect from REST API
      * @param webClient This is vertx non-blocking rest client used for forwarding
@@ -182,7 +185,6 @@ public class ProcessorTopicSchemaRegistry {
      */
     public static void forwardUpdateOneSchema(RoutingContext c, WebClient webClient,
                                               String schemaRegistryRestHost, int schemaRegistryRestPort) {
-
         addOneSchemaCommon(c, webClient,
                 schemaRegistryRestHost, schemaRegistryRestPort,
                 "Schema is updated.", 1017,
@@ -191,7 +193,7 @@ public class ProcessorTopicSchemaRegistry {
     }
 
     /**
-     * This is commonly used utility
+     * This is commonly used utility.
      *
      * @param c This is the connect from REST API
      * @param webClient This is vertx non-blocking rest client used for forwarding
@@ -205,11 +207,11 @@ public class ProcessorTopicSchemaRegistry {
     public static void addOneSchemaCommon(RoutingContext c, WebClient webClient,
                                           String schemaRegistryRestHost, int schemaRegistryRestPort,
                                           String successMsg, int successCode, String errorMsg, int errorCode) {
-
         JsonObject jsonObj = c.getBodyAsJson(),
 				schemaObj = jsonObj.getJsonObject(ConstantApp.SCHEMA_REGISTRY_KEY_SCHEMA);
-        if(!jsonObj.containsKey("id") && !jsonObj.containsKey(ConstantApp.SCHEMA_REGISTRY_KEY_SUBJECT))
-            LOG.error(DFAPIMessage.logResponseMessage(9040, "Subject of Schema is missing."));
+        if(!jsonObj.containsKey("id") && !jsonObj.containsKey(ConstantApp.SCHEMA_REGISTRY_KEY_SUBJECT)) {
+			LOG.error(DFAPIMessage.logResponseMessage(9040, "Subject of Schema is missing."));
+		}
 
         // get subject from id (web ui assigned) and assign it to subject
         String subject = jsonObj.getString(jsonObj.containsKey("id") ? "id" : ConstantApp.SCHEMA_REGISTRY_KEY_SUBJECT);
@@ -275,7 +277,6 @@ public class ProcessorTopicSchemaRegistry {
      */
     public static void forwardDELETEAsDeleteOne (RoutingContext c, WebClient webClient,
                                                  String schemaRegistryRestHost, int schemaRegistryRestPort) {
-
         String subject = c.request().getParam("id");
         // Create REST Client for Kafka Connect REST Forward
         webClient.delete(schemaRegistryRestPort, schemaRegistryRestHost,
@@ -320,14 +321,14 @@ public class ProcessorTopicSchemaRegistry {
         try {
             res = Unirest.get(fullUrl).header("accept", "application/vnd.schemaregistry.v1+json").asString();
             LOG.debug("Subject:" + schemaSubject + " " + res.getBody());
-            if (res.getBody() != null && res.getBody().indexOf("40401") <= 0)
-				compatibility = (new JSONObject(res.getBody().toString()))
+            if (res.getBody() != null && res.getBody().indexOf("40401") <= 0) {
+				compatibility = new JSONObject(res.getBody())
 						.getString(ConstantApp.SCHEMA_REGISTRY_KEY_COMPATIBILITY_LEVEL);
+			}
         } catch (UnirestException e) {
             LOG.error(DFAPIMessage.logResponseMessage(9006, "exception - " + e.getCause()));
         }
 
         return compatibility;
     }
-
 }

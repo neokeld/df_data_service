@@ -13,12 +13,8 @@ import com.datafibers.util.ConstantApp;
 import com.datafibers.util.HelpFunc;
 
 public class ProcessorConnectKafka {
-
     private static final Logger LOG = Logger.getLogger(ProcessorConnectKafka.class);
-    
-    public ProcessorConnectKafka(){}
-
-    /**
+        /**
      * This method is used to get the kafka job stauts. It first decodes the REST GET request to DFJobPOPJ object.
      * Then, it updates its job status and repack for Kafka REST GET.
      * After that, it forward the new GET to Kafka Connect. Once REST API forward is successful, response.
@@ -45,20 +41,22 @@ public class ProcessorConnectKafka {
 					} else {
 						JsonObject jo = ar.result().bodyAsJsonObject();
 						JsonArray subTaskArray = jo.getJsonArray("tasks");
-						if (subTaskArray.isEmpty())
+						if (subTaskArray.isEmpty()) {
 							subTaskArray.add(new JsonObject().put("subTaskId", "e").put("id", taskId + "_e")
 									.put("jobId", taskId).put("dfTaskState", HelpFunc.getTaskStatusKafka(jo))
 									.put("taskState", jo.getJsonObject("connector").getString("state"))
 									.put("taskTrace", jo.getJsonObject("connector").getString("trace")));
-						else
-							for (int i = 0; i < subTaskArray.size(); ++i)
+						} else {
+							for (int i = 0; i < subTaskArray.size(); ++i) {
 								subTaskArray.getJsonObject(i)
 										.put("subTaskId", subTaskArray.getJsonObject(i).getInteger("id"))
 										.put("id", taskId + "_" + subTaskArray.getJsonObject(i).getInteger("id"))
 										.put("jobId", taskId).put("dfTaskState", HelpFunc.getTaskStatusKafka(jo))
 										.put("taskState", jo.getJsonObject("connector").getString("state"));
+							}
+						}
 						HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
-								.putHeader("X-Total-Count", subTaskArray.size() + "")
+								.putHeader("X-Total-Count", String.valueOf(subTaskArray.size()))
 								.end(Json.encodePrettily(subTaskArray.getList()));
 						LOG.info(DFAPIMessage.logResponseMessage(1023, taskId));
 					}
@@ -85,12 +83,13 @@ public class ProcessorConnectKafka {
         webClient.get(kafkaConnectRestPort, kafkaConnectRestHost, ConstantApp.KAFKA_CONNECT_PLUGIN_REST_URL)
                 .putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE, ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
                 .send(ar -> {
-                    if (!ar.succeeded())
+                    if (!ar.succeeded()) {
 						LOG.error(DFAPIMessage.logResponseMessage(9036, ""));
-					else {
+					} else {
 						JsonArray configArray = ar.result().bodyAsJsonArray(), configClassArray = new JsonArray();
-						for (int i = 0; i < configArray.size(); ++i)
+						for (int i = 0; i < configArray.size(); ++i) {
 							configClassArray.add(configArray.getJsonObject(i).getString("class"));
+						}
 						JsonObject query = new JsonObject().put("$and", new JsonArray()
 								.add(new JsonObject().put("class", new JsonObject().put("$in", configClassArray)))
 								.add(new JsonObject().put("meta_type", "installed_connect")));
@@ -99,10 +98,11 @@ public class ProcessorConnectKafka {
 								LOG.warn("RUN_BELOW_CMD_TO_SEE_FULL_METADATA");
 								LOG.warn("mongoimport -c df_installed -d DEFAULT_DB --file df_installed.json");
 							}
-							if (res.succeeded())
+							if (res.succeeded()) {
 								HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
 										.end(Json.encodePrettily(
-												(res.result().toString() == "[]" ? ar : res).result()));
+												(res.result() == "[]" ? ar : res).result()));
+							}
 						});
 					}
                 });
@@ -163,16 +163,15 @@ public class ProcessorConnectKafka {
                                               MongoClient mongoClient, String mongoCOLLECTION,
                                               String kafkaConnectRestHost, int kafkaConnectRestPort,
                                               DFJobPOPJ dfJobResponsed) {
-
         final String id = c.request().getParam("id"), restURL = ConstantApp.KAFKA_CONNECT_PLUGIN_CONFIG
 				.replace("CONNECTOR_NAME_PLACEHOLDER", dfJobResponsed.getConnectUid());
         webClient.put(kafkaConnectRestPort, kafkaConnectRestHost, restURL)
                 .putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE, ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
                 .sendJsonObject(dfJobResponsed.toKafkaConnectJsonConfig(),
                         ar -> {
-                            if (ar.succeeded())
+                            if (ar.succeeded()) {
 								LOG.info(DFAPIMessage.logResponseMessage(1000, dfJobResponsed.getId()));
-							else {
+							} else {
                                 // If response is failed, repose df ui and still keep the task
                                 HelpFunc.responseCorsHandleAddOn(c.response())
                                         .setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
@@ -217,21 +216,21 @@ public class ProcessorConnectKafka {
         final String id = c.request().getParam("id"), connectURL = ConstantApp.KAFKA_CONNECT_REST_URL + "/"
 				+ dfJobResponsed.getConnectUid() + "/" + action.toLowerCase();
         String status = dfJobResponsed.getStatus(), preStatus = status;
-        if (!status.equalsIgnoreCase(ConstantApp.KAFKA_CONNECT_ACTION_PAUSE)
-				&& !status.equalsIgnoreCase(ConstantApp.KAFKA_CONNECT_ACTION_RESUME))
+        if (!ConstantApp.KAFKA_CONNECT_ACTION_PAUSE.equalsIgnoreCase(status)
+				&& !ConstantApp.KAFKA_CONNECT_ACTION_RESUME.equalsIgnoreCase(status)) {
 			HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)
 					.end(DFAPIMessage.getResponseMessage(9032, "", "Invalid Status to Pause or Resume"));
-		else {
-			status = (action.equalsIgnoreCase(ConstantApp.KAFKA_CONNECT_ACTION_PAUSE) ? ConstantApp.DF_STATUS.PAUSED
+		} else {
+			status = (ConstantApp.KAFKA_CONNECT_ACTION_PAUSE.equalsIgnoreCase(action) ? ConstantApp.DF_STATUS.PAUSED
 					: ConstantApp.DF_STATUS.RUNNING).name();
 			dfJobResponsed.setStatus(status);
-			LOG.debug("WILL_PUT_TO_KAFKA_CONNECT - " + dfJobResponsed.toKafkaConnectJsonConfig().toString());
+			LOG.debug("WILL_PUT_TO_KAFKA_CONNECT - " + dfJobResponsed.toKafkaConnectJsonConfig());
 			webClient.put(kafkaConnectRestPort, kafkaConnectRestHost, connectURL)
 					.putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE, ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
 					.sendJsonObject(dfJobResponsed.toKafkaConnectJsonConfig(), ar -> {
-						if (ar.result().statusCode() == ConstantApp.STATUS_CODE_OK_ACCEPTED)
+						if (ar.result().statusCode() == ConstantApp.STATUS_CODE_OK_ACCEPTED) {
 							LOG.info(DFAPIMessage.logResponseMessage(1000, dfJobResponsed.getId()));
-						else
+						} else {
 							mongoClient.updateCollection(mongoCOLLECTION, new JsonObject().put("_id", id),
 									new JsonObject().put("$set", dfJobResponsed.setStatus(preStatus).toJson()), v -> {
 										if (!v.failed()) {
@@ -244,6 +243,7 @@ public class ProcessorConnectKafka {
 											LOG.error(DFAPIMessage.logResponseMessage(9034, id));
 										}
 									});
+						}
 					});
 			mongoClient.updateCollection(mongoCOLLECTION, new JsonObject().put("_id", id),
 					new JsonObject().put("$set", dfJobResponsed.toJson()), v -> {

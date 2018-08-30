@@ -41,7 +41,6 @@ import com.datafibers.util.SchemaRegistryClient;
  * override {@link #createKafkaProducer(String, Properties, SerializationSchema, FlinkKafkaPartitioner)}}.
  */
 public abstract class KafkaTableSink implements UpsertStreamTableSink<Row> {
-
 	protected final String topic;
 	protected final Properties properties;
 	protected SerializationSchema<Tuple2<Boolean, Row>> serializationSchema;
@@ -60,7 +59,6 @@ public abstract class KafkaTableSink implements UpsertStreamTableSink<Row> {
 			String topic,
 			Properties properties,
 			FlinkKafkaPartitioner<Tuple2<Boolean, Row>> partitioner) {
-
 		this.topic = Preconditions.checkNotNull(topic, "topic");
 		this.properties = Preconditions.checkNotNull(properties, "properties");
 		this.partitioner = Preconditions.checkNotNull(partitioner, "partitioner");
@@ -109,7 +107,7 @@ public abstract class KafkaTableSink implements UpsertStreamTableSink<Row> {
 		return fieldNames;
 	}
 
-	//@Override
+	/** @Override */
 	public TypeInformation<?>[] getFieldTypes() {
 		return fieldTypes;
 	}
@@ -127,5 +125,4 @@ public abstract class KafkaTableSink implements UpsertStreamTableSink<Row> {
 		copy.serializationSchema = createSerializationSchema(properties);
 		return copy;
 	}
-
 }

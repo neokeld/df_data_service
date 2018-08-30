@@ -21,7 +21,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.datafibers.util.SchemaRegistryClient;
 
 public class SimpleAvroTest {
-
     public static final String USER_SCHEMA = "{"
             + "\"type\":\"record\","
             + "\"name\":\"myrecord\","
@@ -50,14 +49,17 @@ public class SimpleAvroTest {
 
             System.out.println("******Get Fields Names");
 
-            List<String> stringList = new ArrayList<String>();
+            List<String> stringList = new ArrayList<>();
             if (RECORD.equals(schema.getType()) && schema.getFields() != null
-                    && !schema.getFields().isEmpty())
-				for (org.apache.avro.Schema.Field field : schema.getFields())
+                    && !schema.getFields().isEmpty()) {
+				for (Schema.Field field : schema.getFields()) {
 					stringList.add(field.name());
+				}
+			}
             String[] fieldNames = stringList.toArray( new String[] {} );
-            for ( String element : fieldNames )
+            for ( String element : fieldNames ) {
 				System.out.println(element);
+			}
 
             System.out.println("******Get Fields Types");
 
@@ -67,8 +69,8 @@ public class SimpleAvroTest {
 
             try {
                 if (RECORD.equals(schema.getType()) && schema.getFields() != null
-                        && !schema.getFields().isEmpty())
-					for (org.apache.avro.Schema.Field field : schema.getFields()) {
+                        && !schema.getFields().isEmpty()) {
+					for (Schema.Field field : schema.getFields()) {
 						typeName = field.schema().getType().getName().toLowerCase();
 						switch (typeName) {
 						default:
@@ -83,13 +85,14 @@ public class SimpleAvroTest {
 						}
 						++index;
 					}
+				}
             } catch (ClassNotFoundException cnf) {
                 cnf.printStackTrace();
             }
 
-
-            for ( Class<?> element : fieldTypes )
+            for ( Class<?> element : fieldTypes ) {
 				System.out.println(element);
+			}
 
             System.out.println("TestCase_Test Schema Register Client");
 
@@ -115,12 +118,8 @@ public class SimpleAvroTest {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
-
-
-
     }
 }

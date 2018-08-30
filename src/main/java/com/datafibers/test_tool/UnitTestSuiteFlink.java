@@ -29,11 +29,8 @@ import com.datafibers.service.DFInitService;
 import com.datafibers.util.DynamicRunner;
 import com.datafibers.util.SchemaRegistryClient;
 
-/**
- * TC for Flink features
- */
+/** TC for Flink features. */
 public class UnitTestSuiteFlink {
-
     private static final String SELECT_NAME_SYMBOL_EXCHANGECODE_FROM_ORDERS = "SELECT name, symbol, exchangecode FROM Orders";
 	private static final String ORDERS = "Orders";
 	private static final String FLINK_AVRO_SQL_KAFKA_TEST = "Flink AVRO SQL KAFKA Test";
@@ -41,11 +38,9 @@ public class UnitTestSuiteFlink {
 	private static final Logger LOG = Logger.getLogger(UnitTestSuiteFlink.class);
 
     public static void testFlinkSQL() {
-
         LOG.info("Only Unit Testing Function is enabled");
 
         try {
-
             StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment("localhost", 6123, DFInitService.class.getProtectionDomain().getCodeSource().getLocation().getPath())
                     .setParallelism(1);
             final String kafkaTopic = "finance", kafkaTopicStage = "df_trans_stage_finance";
@@ -81,7 +76,6 @@ public class UnitTestSuiteFlink {
             result.writeToSink(new CsvTableSink(HOME_VAGRANT_TEST_TXT, "|"));
 
             env.execute("FlinkConsumer");
-
         } catch (Exception e) {
             LOG.error(Arrays.toString(e.getStackTrace()));
         }
@@ -255,9 +249,7 @@ public class UnitTestSuiteFlink {
     }
 
     public static void main(String[] args) {
-
     	LOG.info(SchemaRegistryClient.getSchemaFromRegistry ("http://localhost:8081", "test-value", "latest"));
         testFlinkAvroSQLJson();
     }
-
 }

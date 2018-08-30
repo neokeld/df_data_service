@@ -14,11 +14,8 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Properties;
 
-/**
- * TC for Flink features
- */
+/** TC for Flink features. */
 public class TCFlinkAvroSQL {
-
     private static final Logger LOG = Logger.getLogger(TCFlinkAvroSQL.class);
 
     public static void tcFlinkAvroSQL(String schemaRegistryHostPort, String srcTopic, String targetTopic, String sqlState) {
@@ -38,7 +35,7 @@ public class TCFlinkAvroSQL {
         String[] srcTopicList = srcTopic.split(",");
         for (int i = 0; i < srcTopicList.length; ++i) {
             properties.setProperty(ConstantApp.PK_SCHEMA_SUB_INPUT, srcTopicList[i]);
-            properties.setProperty(ConstantApp.PK_SCHEMA_ID_INPUT, SchemaRegistryClient.getLatestSchemaIDFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_INPUT) + "");
+            properties.setProperty(ConstantApp.PK_SCHEMA_ID_INPUT, String.valueOf(SchemaRegistryClient.getLatestSchemaIDFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_INPUT)));
             properties.setProperty(ConstantApp.PK_SCHEMA_STR_INPUT, SchemaRegistryClient.getLatestSchemaFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_INPUT).toString());
             tableEnv.registerTableSource(srcTopicList[i], new Kafka010AvroTableSource(srcTopicList[i], properties));
         }
@@ -51,7 +48,7 @@ public class TCFlinkAvroSQL {
 
             // delivered properties
             properties.setProperty(ConstantApp.PK_SCHEMA_SUB_OUTPUT, targetTopic);
-            properties.setProperty(ConstantApp.PK_SCHEMA_ID_OUTPUT, SchemaRegistryClient.getLatestSchemaIDFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_OUTPUT) + "");
+            properties.setProperty(ConstantApp.PK_SCHEMA_ID_OUTPUT, String.valueOf(SchemaRegistryClient.getLatestSchemaIDFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_OUTPUT)));
             properties.setProperty(ConstantApp.PK_SCHEMA_STR_OUTPUT, SchemaRegistryClient.getLatestSchemaFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_OUTPUT).toString());
 
             LOG.info(Paths.get(resultFile).toAbsolutePath());
@@ -68,5 +65,4 @@ public class TCFlinkAvroSQL {
         tcFlinkAvroSQL("localhost:8002", "test_stock", "SQLSTATE_UNION_01",
 				"SELECT symbol, bid_size FROM test_stock where symbol = 'FB' union all SELECT symbol, bid_size FROM test_stock where symbol = 'SAP'");
     }
-
 }

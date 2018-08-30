@@ -36,7 +36,6 @@ public class KafkaAdminClient
     static boolean existsTopic (AdminClient c, String topicName) {
         try {
             return c.listTopics().names().get().contains(topicName);
-
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
         }
@@ -52,9 +51,9 @@ public class KafkaAdminClient
      */
     public static void createTopic (String BOOTSTRAP_SERVERS_HOST_PORT, String topicName, int partitions, int replication) {
         AdminClient adminClient = createAdminClient(BOOTSTRAP_SERVERS_HOST_PORT);
-        if (existsTopic(adminClient, topicName))
+        if (existsTopic(adminClient, topicName)) {
 			System.out.println(topicName + " already exists and will not create");
-		else {
+		} else {
 			CreateTopicsResult createTopicsResult = adminClient.createTopics(Collections.singleton(new NewTopic(topicName, partitions, (short) replication)));
 			try {
 				createTopicsResult.all().get();
@@ -87,10 +86,11 @@ public class KafkaAdminClient
             deleteTopicsResult.all().get();
             // real failure cause is wrapped inside the raised ExecutionException
         } catch (ExecutionException | InterruptedException e) {
-            if (e.getCause() instanceof UnknownTopicOrPartitionException)
+            if (e.getCause() instanceof UnknownTopicOrPartitionException) {
 				System.err.println("Topic not exists !!");
-			else if (e.getCause() instanceof TimeoutException)
+			} else if (e.getCause() instanceof TimeoutException) {
 				System.err.println("Timeout !!");
+			}
             e.printStackTrace();
         } finally {
             adminClient.close();
@@ -101,9 +101,7 @@ public class KafkaAdminClient
         deleteTopics(DEFAULT_BOOTSTRAP_SERVERS_HOST_PORT, topicsName);
     }
 
-    /**
-     * Lists all topics on the Kafka broker.
-     */
+    /** Lists all topics on the Kafka broker. */
     public static Set<String> listTopics (String BOOTSTRAP_SERVERS_HOST_PORT) {
         AdminClient adminClient = createAdminClient(BOOTSTRAP_SERVERS_HOST_PORT);
         try {
@@ -133,14 +131,14 @@ public class KafkaAdminClient
             describeTopicsResult.all().get().forEach((key, value) -> System.out.println("Key : " + key + " Value : " + value));
             // real failure cause is wrapped inside the raised ExecutionException
         } catch (ExecutionException | InterruptedException e) {
-            if (e.getCause() instanceof UnknownTopicOrPartitionException)
+            if (e.getCause() instanceof UnknownTopicOrPartitionException) {
 				System.err.println("Topic not exists !!");
-			else if (e.getCause() instanceof TimeoutException)
+			} else if (e.getCause() instanceof TimeoutException) {
 				System.err.println("Timeout !!");
+			}
             e.printStackTrace();
         } finally {
             adminClient.close();
         }
     }
-
 }

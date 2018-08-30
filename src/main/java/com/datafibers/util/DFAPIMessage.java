@@ -5,11 +5,8 @@ import io.vertx.core.json.JsonObject;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Class to keep all API response message
- */
+/** Class to keep all API response message. */
 public final class DFAPIMessage {
-
     private static final Map<Integer, String> messageMap;
 
     static
@@ -98,9 +95,13 @@ public final class DFAPIMessage {
         String messageType = responseCode < 9000 ? "INFO" : "ERROR";
         JsonObject response = new JsonObject();
         response.put("info", messageType + " " + String.format("%04d", responseCode) + "-" + messageMap.get(responseCode));
-        if (!"".equalsIgnoreCase(comments)) response.put("comments", comments);
+        if (!"".equalsIgnoreCase(comments)) {
+			response.put("comments", comments);
+		}
         //message can be show from web ui directly
-        if (!"".equalsIgnoreCase(message)) response.put("message", message);
+        if (!"".equalsIgnoreCase(message)) {
+			response.put("message", message);
+		}
         return response;
     }
 
@@ -127,5 +128,4 @@ public final class DFAPIMessage {
     public static String getCustomizedResponseMessage(String responseKey, String responseVal) {
         return Json.encodePrettily(new JsonObject().put(responseKey, responseVal));
     }
-
 }

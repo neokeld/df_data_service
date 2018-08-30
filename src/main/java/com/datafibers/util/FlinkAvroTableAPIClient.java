@@ -14,17 +14,13 @@ import org.apache.log4j.Logger;
 import java.util.Arrays;
 import java.util.Properties;
 
-/**
- * Flink Client to Submit Table API job through Flink Rest API
- */
+/** Flink Client to Submit Table API job through Flink Rest API. */
 public class FlinkAvroTableAPIClient {
-	
-	private static final Logger LOG = Logger.getLogger(FlinkAvroTableAPIClient.class);
+		private static final Logger LOG = Logger.getLogger(FlinkAvroTableAPIClient.class);
 
     public static void tcFlinkAvroTableAPI(String kafkaServerHostPort, String schemaRegistryHostPort,
                                       String srcTopic, String targetTopic,
                                       String consumerGroupId, String sinkKeys, String transScript) {
-
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
 
@@ -37,7 +33,7 @@ public class FlinkAvroTableAPIClient {
         String[] srcTopicList = srcTopic.split(",");
         for (int i = 0; i < srcTopicList.length; ++i) {
             properties.setProperty(ConstantApp.PK_SCHEMA_SUB_INPUT, srcTopicList[i]);
-            properties.setProperty(ConstantApp.PK_SCHEMA_ID_INPUT, SchemaRegistryClient.getLatestSchemaIDFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_INPUT) + "");
+            properties.setProperty(ConstantApp.PK_SCHEMA_ID_INPUT, String.valueOf(SchemaRegistryClient.getLatestSchemaIDFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_INPUT)));
             properties.setProperty(ConstantApp.PK_SCHEMA_STR_INPUT, SchemaRegistryClient.getLatestSchemaFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_INPUT).toString());
             tableEnv.registerTableSource(srcTopic, new Kafka010AvroTableSource(srcTopicList[i], properties));
         }
@@ -62,7 +58,7 @@ public class FlinkAvroTableAPIClient {
             SchemaRegistryClient.addSchemaFromTableResult(schemaRegistryHostPort, targetTopic, result);
             // delivered properties for sink
             properties.setProperty(ConstantApp.PK_SCHEMA_SUB_OUTPUT, targetTopic);
-            properties.setProperty(ConstantApp.PK_SCHEMA_ID_OUTPUT, SchemaRegistryClient.getLatestSchemaIDFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_OUTPUT) + "");
+            properties.setProperty(ConstantApp.PK_SCHEMA_ID_OUTPUT, String.valueOf(SchemaRegistryClient.getLatestSchemaIDFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_OUTPUT)));
             properties.setProperty(ConstantApp.PK_SCHEMA_STR_OUTPUT, SchemaRegistryClient.getLatestSchemaFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_OUTPUT).toString());
 
             result.writeToSink(new Kafka09AvroTableSink(targetTopic, properties, new FlinkFixedPartitioner()));
@@ -71,9 +67,7 @@ public class FlinkAvroTableAPIClient {
         	LOG.error(Arrays.toString(e.getStackTrace()));
         }
     }
-    
-    public static void main(String[] args) {
+        public static void main(String[] args) {
         tcFlinkAvroTableAPI(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
-
     }
 }

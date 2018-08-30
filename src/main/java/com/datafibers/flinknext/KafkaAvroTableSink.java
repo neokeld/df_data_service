@@ -17,7 +17,6 @@
  */
 package com.datafibers.flinknext;
 
-
 import java.util.Properties;
 
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -26,12 +25,11 @@ import org.apache.flink.streaming.util.serialization.SerializationSchema;
 import org.apache.flink.types.Row;
 
 /**
- * Base class for {@link KafkaTableSink} that serializes data in JSON format
+ * Base class for {.@link KafkaTableSink} that serializes data in JSON format
  */
 public abstract class KafkaAvroTableSink extends KafkaTableSink {
-
 	/**
-	 * Creates KafkaJsonTableSink
+	 * Creates KafkaJsonTableSink.
 	 *
 	 * @param topic topic in Kafka to which table is written
 	 * @param properties properties to connect to Kafka

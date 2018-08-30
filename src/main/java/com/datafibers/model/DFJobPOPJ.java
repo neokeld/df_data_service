@@ -6,31 +6,38 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.vertx.core.json.JsonObject;
 import java.util.HashMap;
 
-/**
- * Meta Objects Response for REST API
- */
+/** Meta Objects Response for REST API. */
 public class DFJobPOPJ {
-
-    private String id; // id as pk, which is also used as task id
-    private String taskSeq; // Identify each task order in a job
-    private String name; // Name of the task
-    private String connectUid; // Generate UID using Mongo API to identify connect name for Kafka connect = id
-    private String jobUid; // UID for the Job for future usage.
-    private ConstantApp.DF_CONNECT_TYPE connectorType; // Identify proper connectUid type from enum
+    /** Id as pk, which is also used as task id. */
+    private String id;
+    /** Identify each task order in a job. */
+    private String taskSeq;
+    /** Name of the task. */
+    private String name;
+    /** Generate UID using Mongo API to identify connect name for Kafka connect = id. */
+    private String connectUid;
+    /** UID for the Job for future usage. */
+    private String jobUid;
+    /** Identify proper connectUid type from enum. */
+    private ConstantApp.DF_CONNECT_TYPE connectorType;
     private String connectorCategory;
-    private String description; // Description about job and connectUid
-    private String status; // Job/Connector status
+    /** Description about job and connectUid. */
+    private String description;
+    /** Job/Connector status. */
+    private String status;
     private String udfUpload;
 
-    /*
+    /**
      * The reason we keep them as HashMap is because we do not want to SerDe all field (in that case, we have to define all attribute in
      * configuration file we may use. By using hashmap, we have such flexibility to have one attribute packs all possible configurations.
      * As result, this two below fields are saved as string instead object in mongo and lose native good format (not true nest json). But,
      * we keep flexibility to do any processing through hashmap. And, we can expect any configuration in the config file without changing
      * our code.
      */
-    private HashMap<String, String> jobConfig; //configuration or metadata for the job
-    private HashMap<String, String> connectorConfig; //configuration for the connectUid used. This will maps to Kafka Connect config attribute
+    /** Configuration or metadata for the job. */
+    private HashMap<String, String> jobConfig;
+    /** Configuration for the connectUid used. This will maps to Kafka Connect config attribute */
+    private HashMap<String, String> connectorConfig;
 
     public DFJobPOPJ(String task_seq, String name, String connector_uid, String connector_type, String description,
                      String status, HashMap<String, String> job_config, HashMap<String, String> connector_config) {
@@ -76,7 +83,7 @@ public class DFJobPOPJ {
         this.connectorConfig = null;
     }
 
-    // Used by
+    /** Used by. */
     public DFJobPOPJ(JsonObject json) {
         this.taskSeq = json.getString("taskSeq");
         this.name = json.getString("name");
@@ -99,7 +106,6 @@ public class DFJobPOPJ {
     }
 
     public JsonObject toJson() {
-
         JsonObject json = new JsonObject()
                 .put("name", name)
                 .put("taskSeq", taskSeq)
@@ -113,13 +119,13 @@ public class DFJobPOPJ {
                 .put("connectorConfig", HelpFunc.mapToJsonFromHashMapD2U(connectorConfig))
                 .put("udfUpload", udfUpload);
 
-        if (id != null && !id.isEmpty())
+        if (id != null && !id.isEmpty()) {
 			json.put("_id", id);
+		}
         return json;
     }
 
     public JsonObject toPostJson() {
-
         JsonObject json = new JsonObject()
                 .put("name", name)
                 .put("taskSeq", taskSeq)
@@ -133,8 +139,9 @@ public class DFJobPOPJ {
                 .put("connectorConfig", HelpFunc.mapToJsonFromHashMapD2U(connectorConfig))
                 .put("udfUpload", udfUpload);
 
-        if (id != null && !id.isEmpty())
+        if (id != null && !id.isEmpty()) {
 			json.put("id", id);
+		}
         return json;
     }
 
@@ -151,9 +158,7 @@ public class DFJobPOPJ {
         return HelpFunc.mapToJsonFromHashMapU2D(connectorConfig);
     }
 
-    /*
-     * All below get method is needed to render json to rest. Do not override.
-     */
+    /** All below get method is needed to render json to rest. Do not override. */
     public String getName() {
         return name;
     }
@@ -262,7 +267,9 @@ public class DFJobPOPJ {
     }
 
     public DFJobPOPJ setConnectorConfig(String key, String value) {
-        if (this.connectorConfig == null) this.connectorConfig = new HashMap<>();
+        if (this.connectorConfig == null) {
+			this.connectorConfig = new HashMap<>();
+		}
         this.connectorConfig.put(key, value);
         return this;
     }
@@ -273,7 +280,9 @@ public class DFJobPOPJ {
     }
 
     public DFJobPOPJ setJobConfig(String key, String value) {
-        if (this.jobConfig == null) this.jobConfig = new HashMap<>();
+        if (this.jobConfig == null) {
+			this.jobConfig = new HashMap<>();
+		}
         this.jobConfig.put(key, value);
         return this;
     }
@@ -295,6 +304,4 @@ public class DFJobPOPJ {
     public String getUdfUpload() {
         return udfUpload;
     }
-
-
 }
