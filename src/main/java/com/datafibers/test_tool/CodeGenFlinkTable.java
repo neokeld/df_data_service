@@ -19,17 +19,6 @@ import com.datafibers.util.DynamicRunner;
  */
 public class CodeGenFlinkTable {
 
-	public static Table getFlinkTableObj(String className, String javaCode){
-		try {
-			Class aClass = CompilerUtils.CACHED_COMPILER.loadFromJava(className, javaCode);
-			DynamicRunner runner = (DynamicRunner) aClass.newInstance();
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
 	public static void main(String args[]) {
 
 		String transform2 = "select(\"name\");\n";
@@ -68,7 +57,6 @@ public class CodeGenFlinkTable {
 			String className = "dynamic.FlinkScript";
 			Class aClass = CompilerUtils.CACHED_COMPILER.loadFromJava(className, javaCode2);
 			DynamicRunner runner = (DynamicRunner) aClass.newInstance();
-			//runner.runTransform(ds);
 			Table result = runner.transTableObj(ingest);
 			// write the result Table to the TableSink
 			result.writeToSink(sink);
