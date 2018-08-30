@@ -14,7 +14,6 @@ import java.util.*;
 import io.vertx.ext.mongo.FindOptions;
 import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.client.WebClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
@@ -531,7 +530,7 @@ public class HelpFunc {
      * @return
      */
     public static HashMap<String, String> mapToHashMapFromJson( JsonObject jo) {
-        HashMap<String, String> hm = new HashMap();
+        HashMap<String, String> hm = new HashMap<>();
         for (String key : jo.fieldNames()) {
             hm.put(key, jo.getValue(key).toString()); // JsonArray will convert to [{"method":1},{"method":2}]
         }

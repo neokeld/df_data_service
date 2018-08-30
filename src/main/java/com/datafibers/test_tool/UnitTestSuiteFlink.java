@@ -9,7 +9,6 @@ import java.util.Properties;
 import net.openhft.compiler.CompilerUtils;
 
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.codec.DecoderException;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -65,7 +64,12 @@ public class UnitTestSuiteFlink {
                     .addSource(new FlinkKafkaConsumer09<>(kafkaTopic, new SimpleStringSchema(), properties));
 
             stream.map(new MapFunction<String, String>() {
-                @Override
+                /**
+				 * 
+				 */
+				private static final long serialVersionUID = -8876120731910292738L;
+
+				@Override
                 public String map(String jsonString) throws Exception {
                     return jsonString.replaceAll("\\\\", "").replace("\"{", "{").replace("}\"","}");
                 }

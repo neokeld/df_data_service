@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.*;
 
 import static java.time.temporal.ChronoUnit.MINUTES;
-import static java.time.temporal.ChronoUnit.SECONDS;
 
 /**
  * Created by will on 2017-09-12.
@@ -36,6 +35,7 @@ public class AvroConsumerTest {
                 System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
             if (!records.isEmpty()) {
                 consumer.commitSync();
+                consumer.close();
                 break;
             }
         }
@@ -75,7 +75,10 @@ public class AvroConsumerTest {
 
             for (ConsumerRecord<String, String> record : records)
                 System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
-            if (!records.isEmpty()) break;
+            if (!records.isEmpty()) {
+            	consumer.close();
+            	break;
+            }
         }
 
 
@@ -95,6 +98,7 @@ public class AvroConsumerTest {
                 consumer.commitSync();
                 buffer.forEach(System.out::println);
                 buffer.clear();
+                consumer.close();
                 break;
             }
         }

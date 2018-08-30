@@ -4,11 +4,9 @@ import com.datafibers.util.CLIParser;
 import com.datafibers.util.MongoAdminClient;
 import com.datafibers.util.Runner;
 import com.datafibers.test_tool.UnitTestSuiteFlink;
-import org.apache.commons.codec.DecoderException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
 
 public class DFInitService {
 

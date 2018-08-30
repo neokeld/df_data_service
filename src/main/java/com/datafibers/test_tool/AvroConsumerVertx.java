@@ -2,7 +2,6 @@ package com.datafibers.test_tool;
 
         import io.confluent.kafka.serializers.KafkaAvroDeserializer;
         import io.vertx.core.AbstractVerticle;
-        import io.vertx.core.DeploymentOptions;
         import io.vertx.core.Vertx;
         import io.vertx.core.json.JsonObject;
         import io.vertx.kafka.client.common.PartitionInfo;

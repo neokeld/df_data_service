@@ -23,7 +23,6 @@ public class CodeGenFlinkTable {
 		try {
 			Class aClass = CompilerUtils.CACHED_COMPILER.loadFromJava(className, javaCode);
 			DynamicRunner runner = (DynamicRunner) aClass.newInstance();
-			//return runner.getTableObj();
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -33,23 +32,11 @@ public class CodeGenFlinkTable {
 
 	public static void main(String args[]) {
 
-		String transform = "flatMap(new FlinkUDF.LineSplitter()).groupBy(0).sum(1).print();\n";
-
 		String transform2 = "select(\"name\");\n";
 
 		String header = "package dynamic;\n" +
 				"import org.apache.flink.api.table.Table;\n" +
 				"import com.datafibers.util.*;\n";
-
-		String javaCode = header +
-				"public class FlinkScript implements DynamicRunner {\n" +
-				"@Override \n" +
-				"    public void runTransform(DataSet<String> ds) {\n" +
-						"try {" +
-						"ds."+ transform +
-						"} catch (Exception e) {" +
-						"};" +
-				"}}";
 
 		String javaCode2 = header +
 				"public class FlinkScript implements DynamicRunner {\n" +
