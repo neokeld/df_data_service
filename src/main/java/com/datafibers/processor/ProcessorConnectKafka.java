@@ -101,7 +101,7 @@ public class ProcessorConnectKafka {
 							if (res.succeeded()) {
 								HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
 										.end(Json.encodePrettily(
-												(res.result() == "[]" ? ar : res).result()));
+												(res.result().isEmpty() ? ar : res).result()));
 							}
 						});
 					}

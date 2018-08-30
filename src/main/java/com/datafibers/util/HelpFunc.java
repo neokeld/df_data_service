@@ -424,7 +424,7 @@ public class HelpFunc {
      */
     public static JsonObject mapToJsonFromHashMapD2U(HashMap<String, String> m) {
         JsonObject json = new JsonObject();
-        for (Map.Entry<String, String> entry : m.entrySet()) {
+        for (String key : m.keySet()) {
 			json.put(key.replace('.', '_'), m.get(key));
 		}
         return json;
