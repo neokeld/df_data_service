@@ -44,26 +44,25 @@ public class DFInitService {
     }
 
     public static void runTestCases() {
-            String testcaseNumber = runningMode.replaceAll("[^0-9]", "");
-            switch (testcaseNumber) {
-                case "1":
-                case "2":
-                    UnitTestSuiteFlink.testFlinkAvroSQL();
-                    break;
-                case "4":
-                    UnitTestSuiteFlink.testFlinkAvroSQLJson();
-                case "5":
-                    UnitTestSuiteFlink.testFlinkAvroSQLWithStaticSchema();
-                case "6":
-                    UnitTestSuiteFlink.testFlinkAvroScriptWithStaticSchema();
-                default:
-                    break;
-            }
+            switch (runningMode.replaceAll("[^0-9]", "")) {
+			case "1":
+			case "2":
+				UnitTestSuiteFlink.testFlinkAvroSQL();
+				break;
+			case "4":
+				UnitTestSuiteFlink.testFlinkAvroSQLJson();
+			case "5":
+				UnitTestSuiteFlink.testFlinkAvroSQLWithStaticSchema();
+			case "6":
+				UnitTestSuiteFlink.testFlinkAvroScriptWithStaticSchema();
+			default:
+				break;
+			}
     }
 
     public static void runAdminTools() {
         String adminTool = StringUtils.substringAfterLast(runningMode, "ADMIN_TOOL_");
-        if (adminTool.equalsIgnoreCase("remove_tasks")) {
+        if ("remove_tasks".equalsIgnoreCase(adminTool)) {
             LOG.info("Clean up all tasks (except internal) from repo at localhost:27017/DEFAULT_DB/df_processor");
             new MongoAdminClient("localhost", 27017, "DEFAULT_DB")
                     .truncateCollectionExcept("df_processor", "connectorCategory", "INTERNAL")
@@ -80,8 +79,8 @@ public class DFInitService {
 
         }
 
-        if (adminTool.equalsIgnoreCase("import_df_install") ||
-                adminTool.equalsIgnoreCase("idi")) {
+        if ("import_df_install".equalsIgnoreCase(adminTool) ||
+                "idi".equalsIgnoreCase(adminTool)) {
             LOG.info("Import Connect Metadata to repo at localhost:27017/DEFAULT_DB/df_installed");
             new MongoAdminClient("localhost", "27017", "DEFAULT_DB", "df_installed")
                     .truncateCollection("df_installed")
@@ -89,14 +88,12 @@ public class DFInitService {
                     .close();
         }
 
-        if (adminTool.contains("import_df_install(") || adminTool.contains("idi(")) {
-            String[] para = StringUtils.substringBetween(adminTool, "(", ")").split(",");
-            LOG.info("Clean up all tasks (except internal) from repo at "
-                    +  para[0] + ":" + para[1] + "/" + para[2] + "/" + para[3]);
-            new MongoAdminClient(para[0], para[1], para[2], para[3])
-                    .truncateCollection(para[3])
-                    .importJsonInputStream(DFInitService.class.getResourceAsStream("/import/df_installed.json"))
-                    .close();
-        }
+        if (!adminTool.contains("import_df_install(") && !adminTool.contains("idi("))
+			return;
+		String[] para = StringUtils.substringBetween(adminTool, "(", ")").split(",");
+		LOG.info("Clean up all tasks (except internal) from repo at " + para[0] + ":" + para[1] + "/" + para[2] + "/"
+				+ para[3]);
+		new MongoAdminClient(para[0], para[1], para[2], para[3]).truncateCollection(para[3])
+				.importJsonInputStream(DFInitService.class.getResourceAsStream("/import/df_installed.json")).close();
     }
 }

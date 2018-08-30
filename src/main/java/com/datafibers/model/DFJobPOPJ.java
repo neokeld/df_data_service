@@ -88,10 +88,10 @@ public class DFJobPOPJ {
         this.status = json.getString("status");
         this.id = json.getString("_id");
         this.udfUpload = json.getString("udfUpload");
-        this.jobConfig = (json.containsKey("jobConfig") && json.getValue("jobConfig") != null) ?
-                HelpFunc.mapToHashMapFromJson(json.getJsonObject("jobConfig")) : null;
-        this.connectorConfig = (json.containsKey("connectorConfig") && json.getValue("connectorConfig") != null) ?
-                HelpFunc.mapToHashMapFromJson(json.getJsonObject("connectorConfig")) : null;
+        this.jobConfig = !json.containsKey("jobConfig") || json.getValue("jobConfig") == null ? null
+				: HelpFunc.mapToHashMapFromJson(json.getJsonObject("jobConfig"));
+        this.connectorConfig = !json.containsKey("connectorConfig") || json.getValue("connectorConfig") == null ? null
+				: HelpFunc.mapToHashMapFromJson(json.getJsonObject("connectorConfig"));
     }
 
     public DFJobPOPJ() {
@@ -113,9 +113,8 @@ public class DFJobPOPJ {
                 .put("connectorConfig", HelpFunc.mapToJsonFromHashMapD2U(connectorConfig))
                 .put("udfUpload", udfUpload);
 
-        if (id != null && !id.isEmpty()) {
-            json.put("_id", id);
-        }
+        if (id != null && !id.isEmpty())
+			json.put("_id", id);
         return json;
     }
 
@@ -134,9 +133,8 @@ public class DFJobPOPJ {
                 .put("connectorConfig", HelpFunc.mapToJsonFromHashMapD2U(connectorConfig))
                 .put("udfUpload", udfUpload);
 
-        if (id != null && !id.isEmpty()) {
-            json.put("id", id);
-        }
+        if (id != null && !id.isEmpty())
+			json.put("id", id);
         return json;
     }
 
@@ -201,7 +199,7 @@ public class DFJobPOPJ {
     }
 
     public String getJobConfig(String key) {
-        return jobConfig.containsKey(key)? jobConfig.get(key) : "";
+        return !jobConfig.containsKey(key) ? "" : jobConfig.get(key);
     }
 
     public HashMap<String, String> getConnectorConfig() {
@@ -209,7 +207,7 @@ public class DFJobPOPJ {
     }
 
     public String getConnectorConfig(String key) {
-        return connectorConfig.containsKey(key) ? connectorConfig.get(key) : "";
+        return !connectorConfig.containsKey(key) ? "" : connectorConfig.get(key);
     }
 
     public DFJobPOPJ setName(String name) {
@@ -286,10 +284,9 @@ public class DFJobPOPJ {
 
     @JsonIgnore
     public String getFlinkIDFromJobConfig() {
-        if (this.jobConfig != null && this.jobConfig.containsKey(ConstantApp.PK_FLINK_SUBMIT_JOB_ID))
-            return this.jobConfig.get(ConstantApp.PK_FLINK_SUBMIT_JOB_ID);
-        return "";
-    }
+		return this.jobConfig == null || !this.jobConfig.containsKey(ConstantApp.PK_FLINK_SUBMIT_JOB_ID) ? ""
+				: this.jobConfig.get(ConstantApp.PK_FLINK_SUBMIT_JOB_ID);
+	}
 
     public void setUdfUpload(String tmpUDFUpload) {
         udfUpload = tmpUDFUpload;

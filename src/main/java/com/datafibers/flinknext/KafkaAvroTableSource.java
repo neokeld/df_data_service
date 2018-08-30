@@ -78,21 +78,20 @@ public abstract class KafkaAvroTableSource extends KafkaTableSource {
      * @param failOnMissingField Flag indicating whether to fail or not on a missing field.
      */
     public void setFailOnMissingField(boolean failOnMissingField) {
-        AvroRowDeserializationSchema deserializationSchema = (AvroRowDeserializationSchema) getDeserializationSchema();
-        deserializationSchema.setFailOnMissingField(failOnMissingField);
+        ((AvroRowDeserializationSchema) getDeserializationSchema()).setFailOnMissingField(failOnMissingField);
     }
 
     private static AvroRowDeserializationSchema createDeserializationSchema(
             String[] fieldNames,
-            TypeInformation<?>[] fieldTypes, Properties properties) {
+            TypeInformation<?>[] fieldTypes, Properties p) {
 
-        return new AvroRowDeserializationSchema(fieldNames, fieldTypes, properties);
+        return new AvroRowDeserializationSchema(fieldNames, fieldTypes, p);
     }
 
     private static AvroRowDeserializationSchema createDeserializationSchema(
             String[] fieldNames,
-            Class<?>[] fieldTypes, Properties properties) {
+            Class<?>[] fieldTypes, Properties p) {
 
-        return new AvroRowDeserializationSchema(fieldNames, fieldTypes, properties);
+        return new AvroRowDeserializationSchema(fieldNames, fieldTypes, p);
     }
 }

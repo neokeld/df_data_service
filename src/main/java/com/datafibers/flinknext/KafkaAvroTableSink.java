@@ -41,7 +41,7 @@ public abstract class KafkaAvroTableSink extends KafkaTableSink {
 		super(topic, properties, partitioner);
 	}
 
-	protected SerializationSchema<Tuple2<Boolean, Row>> createSerializationSchema(Properties properties) {
-		return new AvroRowSerializationSchema(properties);
+	protected SerializationSchema<Tuple2<Boolean, Row>> createSerializationSchema(Properties p) {
+		return new AvroRowSerializationSchema(p);
 	}
 }

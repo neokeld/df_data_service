@@ -95,12 +95,12 @@ public final class DFAPIMessage {
     }
 
     public static JsonObject getResponseJsonObj(int responseCode, String comments, String message) {
-        String messageType = responseCode >= 9000 ? "ERROR" : "INFO";
+        String messageType = responseCode < 9000 ? "INFO" : "ERROR";
         JsonObject response = new JsonObject();
         response.put("info", messageType + " " + String.format("%04d", responseCode) + "-" + messageMap.get(responseCode));
-        if (!comments.equalsIgnoreCase("")) response.put("comments", comments);
+        if (!"".equalsIgnoreCase(comments)) response.put("comments", comments);
         //message can be show from web ui directly
-        if (!message.equalsIgnoreCase("")) response.put("message", message);
+        if (!"".equalsIgnoreCase(message)) response.put("message", message);
         return response;
     }
 

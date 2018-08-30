@@ -37,8 +37,8 @@ public class DFModelPOPJ {
         this.description = description;
         this.path = path;
         this.udf = udf;
-        this.createDate = createDate.isEmpty() ? LocalTime.now().toString():createDate;
-        this.updateDate = updateDate.isEmpty() ? LocalTime.now().toString():updateDate;
+        this.createDate = !createDate.isEmpty() ? createDate : LocalTime.now().toString();
+        this.updateDate = !updateDate.isEmpty() ? updateDate : LocalTime.now().toString();
         this.modelInputPara = modelInputPara;
         this.modelOutputPara = modelOutputPara;
         this.idTrained = idTrained;
@@ -55,8 +55,8 @@ public class DFModelPOPJ {
         this.udf = json.getString("udf");
         this.createDate = json.getString("createDate");
         this.updateDate = json.getString("updateDate");
-        this.modelInputPara = (json.containsKey("modelInputPara") && json.getValue("modelInputPara") != null) ?
-                HelpFunc.mapToHashMapFromJson(json.getJsonObject("modelInputPara")) : null;
+        this.modelInputPara = !json.containsKey("modelInputPara") || json.getValue("modelInputPara") == null ? null
+				: HelpFunc.mapToHashMapFromJson(json.getJsonObject("modelInputPara"));
         this.modelOutputPara = json.getString("modelOutputPara");
         this.idTrained = json.getString("idTrained");
     }
@@ -77,9 +77,8 @@ public class DFModelPOPJ {
                 .put("idTrained", idTrained)
                 ;
 
-        if (id != null && !id.isEmpty()) {
-            json.put("_id", id);
-        }
+        if (id != null && !id.isEmpty())
+			json.put("_id", id);
         return json;
     }
 
@@ -99,9 +98,8 @@ public class DFModelPOPJ {
                 .put("idTrained", idTrained)
                 ;
 
-        if (id != null && !id.isEmpty()) {
-            json.put("id", id);
-        }
+        if (id != null && !id.isEmpty())
+			json.put("id", id);
         return json;
     }
 

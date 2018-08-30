@@ -12,11 +12,11 @@ public interface DynamicRunner {
     /*
      * Run Flink Table API Transformation
      */
-    default void runTransform(DataSet<String> ds) {
+    default void runTransform(DataSet<String> s) {
 
     }
 
-    default void runTransform(DataStream<String> ds) {
+    default void runTransform(DataStream<String> s) {
 
     }
 

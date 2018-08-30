@@ -30,7 +30,7 @@ public class FlinkAvroSQLClient {
         properties.setProperty(ConstantApp.PK_FLINK_TABLE_SINK_KEYS, sinkKeys);
 
         String[] srcTopicList = srcTopic.split(",");
-        for (int i = 0; i < srcTopicList.length; i++) {
+        for (int i = 0; i < srcTopicList.length; ++i) {
             properties.setProperty(ConstantApp.PK_SCHEMA_SUB_INPUT, srcTopicList[i]);
             properties.setProperty(ConstantApp.PK_SCHEMA_ID_INPUT, SchemaRegistryClient.getLatestSchemaIDFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_INPUT) + "");
             properties.setProperty(ConstantApp.PK_SCHEMA_STR_INPUT, SchemaRegistryClient.getLatestSchemaFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_INPUT).toString());
@@ -48,9 +48,7 @@ public class FlinkAvroSQLClient {
             properties.setProperty(ConstantApp.PK_SCHEMA_ID_OUTPUT, SchemaRegistryClient.getLatestSchemaIDFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_OUTPUT) + "");
             properties.setProperty(ConstantApp.PK_SCHEMA_STR_OUTPUT, SchemaRegistryClient.getLatestSchemaFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_OUTPUT).toString());
 
-            Kafka09AvroTableSink avro_sink =
-                    new Kafka09AvroTableSink(targetTopic, properties, new FlinkFixedPartitioner());
-            result.writeToSink(avro_sink);
+            result.writeToSink(new Kafka09AvroTableSink(targetTopic, properties, new FlinkFixedPartitioner()));
             env.execute("DF_FlinkSQL_Client_" + srcTopic + "-" + targetTopic);
         } catch (Exception e) {
             e.printStackTrace();

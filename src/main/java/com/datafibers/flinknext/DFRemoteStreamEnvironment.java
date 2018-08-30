@@ -117,46 +117,36 @@ public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
      *            The protocol must be supported by the {@link java.net.URLClassLoader}.
      */
     public DFRemoteStreamEnvironment(String host, int port, Configuration clientConfiguration, String[] jarFiles, URL[] globalClasspaths) {
-        if (!ExecutionEnvironment.areExplicitEnvironmentsAllowed()) {
-            throw new InvalidProgramException(
-                    "The RemoteEnvironment cannot be used when submitting a program through a client, " +
-                            "or running in a TestEnvironment context.");
-        }
+        if (!ExecutionEnvironment.areExplicitEnvironmentsAllowed())
+			throw new InvalidProgramException(
+					"The RemoteEnvironment cannot be used when submitting a program through a client, "
+							+ "or running in a TestEnvironment context.");
 
-        if (host == null) {
-            throw new NullPointerException("Host must not be null.");
-        }
-        if (port < 1 || port >= 0xffff) {
-            throw new IllegalArgumentException("Port out of range");
-        }
+        if (host == null)
+			throw new NullPointerException("Host must not be null.");
+        if (port < 1 || port >= 0xffff)
+			throw new IllegalArgumentException("Port out of range");
 
         this.host = host;
         this.port = port;
         this.clientConfiguration = clientConfiguration == null ? new Configuration() : clientConfiguration;
         this.jarFiles = new ArrayList<>(jarFiles.length);
-        for (String jarFile : jarFiles) {
-            try {
-                URL jarFileUrl = new File(jarFile).getAbsoluteFile().toURI().toURL();
-                this.jarFiles.add(jarFileUrl);
-                JobWithJars.checkJarFile(jarFileUrl);
-            } catch (MalformedURLException e) {
-                throw new IllegalArgumentException("JAR file path is invalid '" + jarFile + "'", e);
-            } catch (IOException e) {
-                throw new RuntimeException("Problem with jar file " + jarFile, e);
-            }
-        }
-        if (globalClasspaths == null) {
-            this.globalClasspaths = Collections.emptyList();
-        }
-        else {
-            this.globalClasspaths = Arrays.asList(globalClasspaths);
-        }
+        for (String jarFile : jarFiles)
+			try {
+				URL jarFileUrl = new File(jarFile).getAbsoluteFile().toURI().toURL();
+				this.jarFiles.add(jarFileUrl);
+				JobWithJars.checkJarFile(jarFileUrl);
+			} catch (MalformedURLException e) {
+				throw new IllegalArgumentException("JAR file path is invalid '" + jarFile + "'", e);
+			} catch (IOException e) {
+				throw new RuntimeException("Problem with jar file " + jarFile, e);
+			}
+        this.globalClasspaths = globalClasspaths == null ? Collections.emptyList() : Arrays.asList(globalClasspaths);
     }
 
     public DFRemoteStreamEnvironment setParallelism(int parallelism) {
-        if (parallelism < 1) {
-            throw new IllegalArgumentException("parallelism must be at least one.");
-        }
+        if (parallelism < 1)
+			throw new IllegalArgumentException("parallelism must be at least one.");
         super.getConfig().setParallelism(parallelism);
         return this;
     }
@@ -169,39 +159,36 @@ public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
         return executeRemotely(streamGraph, jarFiles);
     }
 
-    public JobExecutionResult executeWithDFObj(String jobName, DFJobPOPJ dfJobPOPJ) throws ProgramInvocationException {
+    public JobExecutionResult executeWithDFObj(String jobName, DFJobPOPJ j) throws ProgramInvocationException {
         StreamGraph streamGraph = getStreamGraph();
         streamGraph.setJobName(jobName);
         transformations.clear();
-        return executeRemotely(streamGraph, jarFiles, dfJobPOPJ);
+        return executeRemotely(streamGraph, jarFiles, j);
     }
 
     /**
      * Executes the remote job.
      *
-     * @param streamGraph
+     * @param g
      *            Stream Graph to execute
      * @param jarFiles
      * 			  List of jar file URLs to ship to the cluster
      * @return The result of the job execution, containing elapsed time and accumulators.
      */
-    protected JobExecutionResult executeRemotely(StreamGraph streamGraph, List<URL> jarFiles)
+    protected JobExecutionResult executeRemotely(StreamGraph g, List<URL> jarFiles)
             throws ProgramInvocationException {
-        return executeRemotely(streamGraph, jarFiles, null);
+        return executeRemotely(g, jarFiles, null);
     }
 
-    protected JobExecutionResult executeRemotely(StreamGraph streamGraph, List<URL> jarFiles,
-                                                 DFJobPOPJ dfJobPOPJ) throws ProgramInvocationException {
-        if (LOG.isInfoEnabled()) {
-            LOG.info("Running remotely at {}:{}", host, port);
-        }
+    protected JobExecutionResult executeRemotely(StreamGraph g, List<URL> jarFiles,
+                                                 DFJobPOPJ j) throws ProgramInvocationException {
+        if (LOG.isInfoEnabled())
+			LOG.info("Running remotely at {}:{}", host, port);
 
         ClassLoader usercodeClassLoader = JobWithJars.buildUserCodeClassLoader(jarFiles, globalClasspaths,
                 getClass().getClassLoader());
 
-        Configuration configuration = new Configuration();
-        configuration.addAll(this.clientConfiguration);
-
+        Configuration configuration = new Configuration(this.clientConfiguration);
         configuration.setString(JobManagerOptions.ADDRESS, host);
         configuration.setInteger(JobManagerOptions.PORT, port);
 
@@ -215,14 +202,14 @@ public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
         }
 
         try {
-            return client.runWithDFObj(streamGraph, jarFiles, globalClasspaths, usercodeClassLoader, dfJobPOPJ).getJobExecutionResult();
+            return client.runWithDFObj(g, jarFiles, globalClasspaths, usercodeClassLoader, j).getJobExecutionResult();
         }
         catch (ProgramInvocationException e) {
             throw e;
         }
         catch (Exception e) {
-            String term = e.getMessage() == null ? "." : (": " + e.getMessage());
-            throw new ProgramInvocationException("The program execution failed" + term, e);
+            throw new ProgramInvocationException(
+					"The program execution failed" + (e.getMessage() == null ? "." : (": " + e.getMessage())), e);
         }
         finally {
             try {

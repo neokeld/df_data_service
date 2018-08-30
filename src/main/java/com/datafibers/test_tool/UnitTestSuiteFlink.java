@@ -45,15 +45,9 @@ public class UnitTestSuiteFlink {
 
         try {
 
-            String jarPath = DFInitService.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-            StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment("localhost", 6123, jarPath)
+            StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment("localhost", 6123, DFInitService.class.getProtectionDomain().getCodeSource().getLocation().getPath())
                     .setParallelism(1);
-            String kafkaTopic = "finance";
-            String kafkaTopic_stage = "df_trans_stage_finance";
-            String kafkaTopic_out = "df_trans_out_finance";
-
-
-
+            String kafkaTopic = "finance", kafkaTopic_stage = "df_trans_stage_finance";
             StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
             Properties properties = new Properties();
             properties.setProperty("bootstrap.servers", "localhost:9092");
@@ -64,10 +58,7 @@ public class UnitTestSuiteFlink {
                     .addSource(new FlinkKafkaConsumer09<>(kafkaTopic, new SimpleStringSchema(), properties));
 
             stream.map(new MapFunction<String, String>() {
-                /**
-				 * 
-				 */
-				private static final long serialVersionUID = -8876120731910292738L;
+                private static final long serialVersionUID = -0x7B2E50C728FE4502L;
 
 				@Override
                 public String map(String jsonString) throws Exception {
@@ -79,25 +70,19 @@ public class UnitTestSuiteFlink {
             String[] fieldNames =  new String[] {"name"};
             Class<?>[] fieldTypes = new Class<?>[] {String.class};
 
-            Kafka09AvroTableSource kafkaTableSource = new Kafka09AvroTableSource(
-                    kafkaTopic_stage,
-                    properties,
-                    fieldNames,
-                    fieldTypes);
+            
 
             //kafkaTableSource.setFailOnMissingField(true);
 
-            tableEnv.registerTableSource("Orders", kafkaTableSource);
+            tableEnv.registerTableSource("Orders", new Kafka09AvroTableSource(kafkaTopic_stage, properties, fieldNames, fieldTypes));
 
             //Table result = tableEnv.sql("SELECT STREAM name FROM Orders");
             Table result = tableEnv.sql("SELECT name FROM Orders");
 
             Files.deleteIfExists(Paths.get(resultFile));
 
-            // create a TableSink
-            TableSink sink = new CsvTableSink(resultFile, "|");
             // write the result Table to the TableSink
-            result.writeToSink(sink);
+            result.writeToSink(new CsvTableSink(resultFile, "|"));
 
             env.execute("FlinkConsumer");
 
@@ -110,8 +95,7 @@ public class UnitTestSuiteFlink {
         System.out.println("TestCase_Test Avro SQL");
         String resultFile = "/home/vagrant/test.txt";
 
-        String jarPath = DFInitService.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment("localhost", 6123, jarPath)
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment("localhost", 6123, DFInitService.class.getProtectionDomain().getCodeSource().getLocation().getPath())
                 .setParallelism(1);
         StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
         Properties properties = new Properties();
@@ -122,18 +106,15 @@ public class UnitTestSuiteFlink {
         properties.setProperty("static.avro.schema", "empty_schema");
 
         try {
-            Kafka09AvroTableSource kafkaAvroTableSource =  new Kafka09AvroTableSource("test", properties);
-            tableEnv.registerTableSource("Orders", kafkaAvroTableSource);
+            tableEnv.registerTableSource("Orders", new Kafka09AvroTableSource("test", properties));
 
             //Table result = tableEnv.sql("SELECT STREAM name, symbol, exchange FROM Orders");
             Table result = tableEnv.sql("SELECT name, symbol, exchangecode FROM Orders");
 
             Files.deleteIfExists(Paths.get(resultFile));
 
-            // create a TableSink
-            TableSink sink = new CsvTableSink(resultFile, "|");
             // write the result Table to the TableSink
-            result.writeToSink(sink);
+            result.writeToSink(new CsvTableSink(resultFile, "|"));
             env.execute("Flink AVRO SQL KAFKA Test");
         } catch (Exception e) {
             e.printStackTrace();
@@ -153,8 +134,7 @@ public class UnitTestSuiteFlink {
                 + "]}";
         String resultFile = "/home/vagrant/test.txt";
 
-        String jarPath = DFInitService.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment("localhost", 6123, jarPath)
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment("localhost", 6123, DFInitService.class.getProtectionDomain().getCodeSource().getLocation().getPath())
                 .setParallelism(1);
         StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
         Properties properties = new Properties();
@@ -165,18 +145,15 @@ public class UnitTestSuiteFlink {
         properties.setProperty("static.avro.schema", STATIC_USER_SCHEMA);
 
         try {
-            Kafka09AvroTableSource kafkaAvroTableSource =  new Kafka09AvroTableSource("test", properties);
-            tableEnv.registerTableSource("Orders", kafkaAvroTableSource);
+            tableEnv.registerTableSource("Orders", new Kafka09AvroTableSource("test", properties));
 
             //Table result = tableEnv.sql("SELECT STREAM name, symbol, exchange FROM Orders");
             Table result = tableEnv.sql("SELECT name, symbol, exchangecode FROM Orders");
 
             Files.deleteIfExists(Paths.get(resultFile));
 
-            // create a TableSink
-            TableSink sink = new CsvTableSink(resultFile, "|");
             // write the result Table to the TableSink
-            result.writeToSink(sink);
+            result.writeToSink(new CsvTableSink(resultFile, "|"));
             env.execute("Flink AVRO SQL KAFKA Test");
         } catch (Exception e) {
             e.printStackTrace();
@@ -185,15 +162,6 @@ public class UnitTestSuiteFlink {
 
     public static void testFlinkAvroSQLJson() {
         System.out.println("TestCase_Test Avro SQL to Json Sink");
-        final String STATIC_USER_SCHEMA = "{"
-                + "\"type\":\"record\","
-                + "\"name\":\"myrecord\","
-                + "\"fields\":["
-                + "  { \"name\":\"symbol\", \"type\":\"string\" },"
-                + "  { \"name\":\"name\", \"type\":\"string\" },"
-                + "  { \"name\":\"exchangecode\", \"type\":\"string\" }"
-                + "]}";
-
         String jarPath = DFInitService.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         DFRemoteStreamEnvironment env = new DFRemoteStreamEnvironment("localhost", 6123, jarPath)
                 .setParallelism(1);
@@ -209,15 +177,11 @@ public class UnitTestSuiteFlink {
 
         try {
             HashMap<String, String> hm = new HashMap<>();
-            Kafka09AvroTableSource kafkaAvroTableSource =  new Kafka09AvroTableSource("test", properties);
-            tableEnv.registerTableSource("Orders", kafkaAvroTableSource);
+            tableEnv.registerTableSource("Orders", new Kafka09AvroTableSource("test", properties));
 
             Table result = tableEnv.sql("SELECT name, symbol, exchangecode FROM Orders");
-            //Kafka09JsonTableSink json_sink = new Kafka09JsonTableSink ("test_json", properties, new FlinkFixedPartitioner());
-            Kafka09AvroTableSink json_sink = new Kafka09AvroTableSink ("test_json", properties, new FlinkFixedPartitioner());
-
             // write the result Table to the TableSink
-            result.writeToSink(json_sink);
+            result.writeToSink(new Kafka09AvroTableSink("test_json", properties, new FlinkFixedPartitioner()));
             env.executeWithDFObj("Flink AVRO SQL KAFKA Test", new DFJobPOPJ().setJobConfig(hm) );
         } catch (Exception e) {
             e.printStackTrace();
@@ -245,9 +209,8 @@ public class UnitTestSuiteFlink {
                     + "  { \"name\":\"symbol\", \"type\":\"string\" },"
                     + "  { \"name\":\"exchangecode\", \"type\":\"string\" }"
                     + "]}";
-            Schema.Parser parser = new Schema.Parser();
-            Schema schema2 = parser.parse(USER_SCHEMA);
-            System.out.println("raw schema2 for name is " + schema.getField("name"));
+            new Schema.Parser().parse(USER_SCHEMA);
+			System.out.println("raw schema2 for name is " + schema.getField("name"));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -265,8 +228,7 @@ public class UnitTestSuiteFlink {
                 + "  { \"name\":\"exchangecode\", \"type\":\"string\" }"
                 + "]}";
 
-        String jarPath = DFInitService.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment("localhost", 6123, jarPath)
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createRemoteEnvironment("localhost", 6123, DFInitService.class.getProtectionDomain().getCodeSource().getLocation().getPath())
                 .setParallelism(1);
         StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
         Properties properties = new Properties();
@@ -277,38 +239,15 @@ public class UnitTestSuiteFlink {
         properties.setProperty("static.avro.schema", STATIC_USER_SCHEMA);
 
         try {
-            Kafka09AvroTableSource kafkaAvroTableSource =  new Kafka09AvroTableSource("test", properties);
-            tableEnv.registerTableSource("Orders", kafkaAvroTableSource);
+            tableEnv.registerTableSource("Orders", new Kafka09AvroTableSource("test", properties));
 
-            Table ingest = tableEnv.scan("Orders");
-
-            String className = "dynamic.FlinkScript";
-
-            String header = "package dynamic;\n" +
-                    "import org.apache.flink.table.api.Table;\n" +
-                    "import com.datafibers.util.*;\n";
-
-            String transScript = "select(\"name\")";
-
-            String javaCode = header +
-                    "public class FlinkScript implements DynamicRunner {\n" +
-                    "@Override \n" +
-                    "    public Table transTableObj(Table tbl) {\n" +
-                    "try {" +
-                    "return tbl."+ transScript + ";" +
-                    "} catch (Exception e) {" +
-                    "};" +
-                    "return null;}}";
-
-            // Dynamic code generation
-            Class aClass = CompilerUtils.CACHED_COMPILER.loadFromJava(className, javaCode);
-            DynamicRunner runner = (DynamicRunner) aClass.newInstance();
-            Table result = runner.transTableObj(ingest);
-
-            Kafka09AvroTableSink sink =
-                    new Kafka09AvroTableSink ("test_json", properties, new FlinkFixedPartitioner());
-            // write the result Table to the TableSink
-            result.writeToSink(sink);
+            Table ingest = tableEnv.scan("Orders"), result = ((DynamicRunner) CompilerUtils.CACHED_COMPILER
+					.loadFromJava("dynamic.FlinkScript",
+							"package dynamic;\nimport org.apache.flink.table.api.Table;\n"
+									+ "import com.datafibers.util.*;\n"
+									+ "public class FlinkScript implements DynamicRunner {\n@Override \n"
+									+ "    public Table transTableObj(Table tbl) {\ntry {return tbl."
+									+ "select(\"name\");} catch (Exception e) {};return null;}}"sult.writeToSink(new Kafka09AvroTableSink("test_json", properties, new FlinkFixedPartitioner()));
             env.execute("Flink AVRO SQL KAFKA Test");
         } catch (Exception e) {
             e.printStackTrace();
@@ -316,15 +255,6 @@ public class UnitTestSuiteFlink {
     }
 
     public static void main(String[] args) throws IOException, DecoderException {
-
-        final String STATIC_USER_SCHEMA = "{"
-                + "\"type\":\"record\","
-                + "\"name\":\"myrecord\","
-                + "\"fields\":["
-                + "  { \"name\":\"symbol\", \"type\":\"string\" },"
-                + "  { \"name\":\"name\", \"type\":\"string\" },"
-                + "  { \"name\":\"exchangecode\", \"type\":\"string\" }"
-                + "]}";
 
         System.out.println(SchemaRegistryClient.getSchemaFromRegistry ("http://localhost:8081", "test-value", "latest"));
         //testFlinkAvroSerDe("http://localhost:18081");

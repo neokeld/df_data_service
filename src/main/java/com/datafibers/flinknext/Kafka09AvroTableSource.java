@@ -63,8 +63,8 @@ public class Kafka09AvroTableSource extends KafkaAvroTableSource {
     }
 
     @Override
-    FlinkKafkaConsumerBase<Row> getKafkaConsumer(String topic, Properties properties, DeserializationSchema<Row> deserializationSchema) {
-        return new FlinkKafkaConsumer09<>(topic, deserializationSchema, properties);
+    FlinkKafkaConsumerBase<Row> getKafkaConsumer(String topic, Properties p, DeserializationSchema<Row> r) {
+        return new FlinkKafkaConsumer09<>(topic, r, p);
     }
 
 

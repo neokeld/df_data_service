@@ -29,7 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class AvroRowDeserializationSchema implements DeserializationSchema<Row> {
 
-    private static final long serialVersionUID = 4330538776656642779L;
+    private static final long serialVersionUID = 0x3C192A12BCAC82DBL;
     private static final Logger LOG = Logger.getLogger(AvroRowDeserializationSchema.class);
 
     /** Field names to parse. Indices match fieldTypes indices. */
@@ -64,9 +64,8 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
 
         this.fieldNames = Preconditions.checkNotNull(fieldNames, "Field names");
         this.fieldTypes = new TypeInformation[fieldTypes.length];
-        for (int i = 0; i < fieldTypes.length; i++) {
-            this.fieldTypes[i] = TypeExtractor.getForClass(fieldTypes[i]);
-        }
+        for (int i = 0; i < fieldTypes.length; ++i)
+			this.fieldTypes[i] = TypeExtractor.getForClass(fieldTypes[i]);
 
         Preconditions.checkArgument(fieldNames.length == fieldTypes.length,
                 "Number of provided field names and types does not match.");
@@ -97,37 +96,29 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
             BinaryDecoder decoder;
             ByteBuffer buffer = ByteBuffer.wrap(message);
 
-            if (buffer.get() != ConstantApp.MAGIC_BYTE) {
-                // For platform other than confluent without SchemaRegister magic codec
-                decoder = DecoderFactory.get().binaryDecoder(message, null);
-            } else {
+            if (buffer.get() != ConstantApp.MAGIC_BYTE)
+				decoder = DecoderFactory.get().binaryDecoder(message, null);
+			else {
                 // For platform of confluent with SchemaRegister magic codec and dynamic schema
                 schema_id = buffer.getInt() + ""; // Do not comment it out. Or else, set start as 5
-                int length = buffer.limit() - 1 - ConstantApp.idSize;
-                int start = buffer.position() + buffer.arrayOffset();
-                decoder = DecoderFactory.get().binaryDecoder(buffer.array(), start, length, null);
+                decoder = DecoderFactory.get().binaryDecoder(buffer.array(), buffer.position() + buffer.arrayOffset(),
+						buffer.limit() - ConstantApp.idSize - 1, null);
             }
             
             JsonNode root;
             reader = new GenericDatumReader<>(new Schema.Parser().parse(static_avro_schema));//TODO get row level schema
-            GenericRecord gr = reader.read(null, decoder);
-            root = objectMapper.readTree(gr.toString());
+            root = objectMapper.readTree(reader.read(null, decoder).toString());
             Row row = new Row(fieldNames.length);
-            for (int i = 0; i < fieldNames.length; i++) {
+            for (int i = 0; i < fieldNames.length; ++i) {
                 JsonNode node = root.get(fieldNames[i]);
 
-                if (node == null) {
-                    if (failOnMissingField) {
-                        throw new IllegalStateException("Failed to find field with name '"
-                                + fieldNames[i] + "'.");
-                    } else {
-                        row.setField(i, null);
-                    }
-                } else {
-                    // Read the value as specified type
-                    Object value = objectMapper.treeToValue(node, fieldTypes[i].getTypeClass());
-                    row.setField(i, value);
-                }
+                if (node != null)
+					row.setField(i, objectMapper.treeToValue(node, fieldTypes[i].getTypeClass()));
+				else {
+					if (failOnMissingField)
+						throw new IllegalStateException("Failed to find field with name '" + fieldNames[i] + "'.");
+					row.setField(i, null);
+				}
             }
 
             return row;

@@ -35,15 +35,8 @@ public class MyFirstVerticleTest {
 
   @BeforeClass
   public static void initialize() throws IOException {
-    MongodStarter starter = MongodStarter.getDefaultInstance();
-
-    IMongodConfig mongodConfig = new MongodConfigBuilder()
-        .version(Version.Main.PRODUCTION)
-        .net(new Net(MONGO_PORT, Network.localhostIsIPv6()))
-        .build();
-
-    MongodExecutable mongodExecutable = starter.prepare(mongodConfig);
-    MONGO = mongodExecutable.start();
+    MONGO = MongodStarter.getDefaultInstance().prepare(new MongodConfigBuilder().version(Version.Main.PRODUCTION)
+			.net(new Net(MONGO_PORT, Network.localhostIsIPv6())).build()).start();
   }
 
   @AfterClass
@@ -57,10 +50,10 @@ public class MyFirstVerticleTest {
    * This method instantiates a new Vertx and deploy the verticle. Then, it waits in the verticle has successfully
    * completed its start sequence (thanks to `context.asyncAssertSuccess`).
    *
-   * @param context the test context.
+   * @param c the test context.
    */
   @Before
-  public void setUp(TestContext context) throws IOException {
+  public void setUp(TestContext c) throws IOException {
     vertx = Vertx.vertx();
 
     // Let's configure the verticle to listen on the 'test' port (randomly picked).
@@ -69,77 +62,70 @@ public class MyFirstVerticleTest {
     port = socket.getLocalPort();
     socket.close();
 
-    DeploymentOptions options = new DeploymentOptions()
-        .setConfig(new JsonObject()
-            .put("http.port", port)
-            .put("db_name", "whiskies-test")
-            .put("connection_string", "mongodb://localhost:" + MONGO_PORT)
-        );
-
-    // We pass the options as the second parameter of the deployVerticle method.
-    vertx.deployVerticle(DFDataProcessor.class.getName(), options, context.asyncAssertSuccess());
+    vertx.deployVerticle(
+			DFDataProcessor.class.getName(), new DeploymentOptions().setConfig(new JsonObject().put("http.port", port)
+					.put("db_name", "whiskies-test").put("connection_string", "mongodb://localhost:" + MONGO_PORT)),
+			c.asyncAssertSuccess());
   }
 
   /**
    * This method, called after our test, just cleanup everything by closing the vert.x instance
    *
-   * @param context the test context
+   * @param c the test context
    */
   @After
-  public void tearDown(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+  public void tearDown(TestContext c) {
+    vertx.close(c.asyncAssertSuccess());
   }
 
   /**
    * Let's ensure that our application behaves correctly.
    *
-   * @param context the test context
+   * @param c the test context
    */
   @Test
-  public void testMyApplication(TestContext context) {
+  public void testMyApplication(TestContext c) {
     // This test is asynchronous, so get an async handler to inform the test when we are done.
-    final Async async = context.async();
+    final Async async = c.async();
 
     // We create a HTTP client and query our application. When we get the response we check it contains the 'Hello'
     // message. Then, we call the `complete` method on the async handler to declare this async (and here the test) done.
     // Notice that the assertions are made on the 'context' object and are not Junit assert. This ways it manage the
     // async aspect of the test the right way.
-    vertx.createHttpClient().getNow(port, "localhost", "/", response -> {
-      response.handler(body -> {
-        context.assertTrue(body.toString().contains("Hello"));
-        async.complete();
-      });
-    });
+    vertx.createHttpClient().getNow(port, "localhost", "/", response -> response.handler(body -> {
+		assert body.toString().contains("Hello");
+		async.complete();
+	}));
   }
 
   @Test
-  public void checkThatTheIndexPageIsServed(TestContext context) {
-    Async async = context.async();
+  public void checkThatTheIndexPageIsServed(TestContext c) {
+    Async async = c.async();
     vertx.createHttpClient().getNow(port, "localhost", "/assets/index.html", response -> {
-      context.assertEquals(response.statusCode(), 200);
-      context.assertEquals(response.headers().get("content-type"), "text/html");
+      c.assertEquals(response.statusCode(), 200);
+      c.assertEquals(response.headers().get("content-type"), "text/html");
       response.bodyHandler(body -> {
-        context.assertTrue(body.toString().contains("<title>My DFJobPOPJ Collection</title>"));
+        assert body.toString().contains("<title>My DFJobPOPJ Collection</title>");
         async.complete();
       });
     });
   }
 
   @Test
-  public void checkThatWeCanAdd(TestContext context) {
-    Async async = context.async();
+  public void checkThatWeCanAdd(TestContext c) {
+    Async async = c.async();
     final String json = Json.encodePrettily(new DFJobPOPJ("Jameson", "Ireland","Register"));
     vertx.createHttpClient().post(port, "localhost", "/api/df")
         .putHeader("content-type", "application/json")
         .putHeader("content-length", Integer.toString(json.length()))
         .handler(response -> {
-          context.assertEquals(response.statusCode(), 201);
-          context.assertTrue(response.headers().get("content-type").contains("application/json"));
+          c.assertEquals(response.statusCode(), 201);
+          assert response.headers().get("content-type").contains("application/json");
           response.bodyHandler(body -> {
             final DFJobPOPJ DFJob = Json.decodeValue(body.toString(), DFJobPOPJ.class);
-            context.assertEquals(DFJob.getName(), "Jameson");
-            context.assertEquals(DFJob.getConnectUid(), "Ireland");
-            context.assertNotNull(DFJob.getId());
+            c.assertEquals(DFJob.getName(), "Jameson");
+            c.assertEquals(DFJob.getConnectUid(), "Ireland");
+            c.assertNotNull(DFJob.getId());
             async.complete();
           });
         })

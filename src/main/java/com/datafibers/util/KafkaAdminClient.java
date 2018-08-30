@@ -33,10 +33,9 @@ public class KafkaAdminClient
      * @return <code>true</code> if the topic exists on the broker,
      *         <code>false</code> if it doesn't.
      */
-    static boolean existsTopic (AdminClient adminClient, String topicName) {
+    static boolean existsTopic (AdminClient c, String topicName) {
         try {
-            ListTopicsResult listTopicsResult = adminClient.listTopics();
-            return listTopicsResult.names().get().contains(topicName);
+            return c.listTopics().names().get().contains(topicName);
 
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
@@ -53,20 +52,18 @@ public class KafkaAdminClient
      */
     public static void createTopic (String BOOTSTRAP_SERVERS_HOST_PORT, String topicName, int partitions, int replication) {
         AdminClient adminClient = createAdminClient(BOOTSTRAP_SERVERS_HOST_PORT);
-        if(!existsTopic(adminClient, topicName)) {
-            NewTopic topic = new NewTopic(topicName, partitions, (short)replication);
-            CreateTopicsResult createTopicsResult = adminClient.createTopics(Collections.singleton(topic));
-            try {
-                createTopicsResult.all().get();
-                // real failure cause is wrapped inside the raised ExecutionException
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                adminClient.close();
-            }
-        } else {
-            System.out.println(topicName + " already exists and will not create");
-        }
+        if (existsTopic(adminClient, topicName))
+			System.out.println(topicName + " already exists and will not create");
+		else {
+			CreateTopicsResult createTopicsResult = adminClient.createTopics(Collections.singleton(new NewTopic(topicName, partitions, (short) replication)));
+			try {
+				createTopicsResult.all().get();
+			} catch (ExecutionException | InterruptedException e) {
+				e.printStackTrace();
+			} finally {
+				adminClient.close();
+			}
+		}
     }
 
     public static void createTopic (String topicName, int partitions, int replication) {
@@ -90,11 +87,10 @@ public class KafkaAdminClient
             deleteTopicsResult.all().get();
             // real failure cause is wrapped inside the raised ExecutionException
         } catch (ExecutionException | InterruptedException e) {
-            if (e.getCause() instanceof UnknownTopicOrPartitionException) {
-                System.err.println("Topic not exists !!");
-            } else if (e.getCause() instanceof TimeoutException) {
-                System.err.println("Timeout !!");
-            }
+            if (e.getCause() instanceof UnknownTopicOrPartitionException)
+				System.err.println("Topic not exists !!");
+			else if (e.getCause() instanceof TimeoutException)
+				System.err.println("Timeout !!");
             e.printStackTrace();
         } finally {
             adminClient.close();
@@ -134,16 +130,13 @@ public class KafkaAdminClient
         // remove topic which is not already exists
         DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(Arrays.asList(topicsName.split(",")));
         try {
-            describeTopicsResult.all().get().forEach((key, value) -> {
-                System.out.println("Key : " + key + " Value : " + value);
-            });
+            describeTopicsResult.all().get().forEach((key, value) -> System.out.println("Key : " + key + " Value : " + value));
             // real failure cause is wrapped inside the raised ExecutionException
         } catch (ExecutionException | InterruptedException e) {
-            if (e.getCause() instanceof UnknownTopicOrPartitionException) {
-                System.err.println("Topic not exists !!");
-            } else if (e.getCause() instanceof TimeoutException) {
-                System.err.println("Timeout !!");
-            }
+            if (e.getCause() instanceof UnknownTopicOrPartitionException)
+				System.err.println("Topic not exists !!");
+			else if (e.getCause() instanceof TimeoutException)
+				System.err.println("Timeout !!");
             e.printStackTrace();
         } finally {
             adminClient.close();

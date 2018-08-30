@@ -41,28 +41,23 @@ public class DFCusterClient extends ClusterClient {
     @Override
     public void waitForClusterToBeReady() {}
 
-    @SuppressWarnings( "deprecation" )
     @Override
-    public String getWebInterfaceURL() {
-        String host = this.getJobManagerAddress().getHostString();
-        int port = getFlinkConfiguration().getInteger(ConfigConstants.JOB_MANAGER_WEB_PORT_KEY,
-                ConfigConstants.DEFAULT_JOB_MANAGER_WEB_FRONTEND_PORT);
-        return "http://" +  host + ":" + port;
-    }
+	@SuppressWarnings("deprecation")
+	public String getWebInterfaceURL() {
+		return "http://" + this.getJobManagerAddress().getHostString() + ":" + getFlinkConfiguration().getInteger(
+				ConfigConstants.JOB_MANAGER_WEB_PORT_KEY, ConfigConstants.DEFAULT_JOB_MANAGER_WEB_FRONTEND_PORT);
+	}
 
     @Override
     public GetClusterStatusResponse getClusterStatus() {
         ActorGateway jmGateway;
         try {
-            jmGateway = getJobManagerGateway();
-            Future<Object> future = jmGateway.ask(GetClusterStatus.getInstance(), timeout);
-            Object result = Await.result(future, timeout);
-            if (result instanceof GetClusterStatusResponse) {
-                return (GetClusterStatusResponse) result;
-            } else {
-                throw new RuntimeException("Received the wrong reply " + result + " from cluster.");
-            }
-        } catch (Exception e) {
+			jmGateway = getJobManagerGateway();
+			Object result = Await.result(jmGateway.ask(GetClusterStatus.getInstance(), timeout), timeout);
+			if (!(result instanceof GetClusterStatusResponse))
+				throw new RuntimeException("Received the wrong reply " + result + " from cluster.");
+			return (GetClusterStatusResponse) result;
+		} catch (Exception e) {
             throw new RuntimeException("Couldn't retrieve the Cluster status.", e);
         }
     }
@@ -84,13 +79,9 @@ public class DFCusterClient extends ClusterClient {
     }
 
     @Override
-    protected JobSubmissionResult submitJob(JobGraph jobGraph, ClassLoader classLoader)
+    protected JobSubmissionResult submitJob(JobGraph g, ClassLoader l)
             throws ProgramInvocationException {
-        if (isDetached()) {
-            return super.runDetached(jobGraph, classLoader);
-        } else {
-            return super.run(jobGraph, classLoader);
-        }
+        return !isDetached() ? super.run(g, l) : super.runDetached(g, l);
     }
 
     @Override
@@ -98,37 +89,35 @@ public class DFCusterClient extends ClusterClient {
 
 
     public JobSubmissionResult runWithDFObj(
-            FlinkPlan compiledPlan, List<URL> libraries, List<URL> classpaths, ClassLoader classLoader, DFJobPOPJ dfJobPOPJ) throws ProgramInvocationException {
-        return runWithDFObj(compiledPlan, libraries, classpaths, classLoader, SavepointRestoreSettings.none(), dfJobPOPJ);
+            FlinkPlan compiledPlan, List<URL> libraries, List<URL> classpaths, ClassLoader l, DFJobPOPJ j) throws ProgramInvocationException {
+        return runWithDFObj(compiledPlan, libraries, classpaths, l, SavepointRestoreSettings.none(), j);
     }
 
     public JobSubmissionResult runWithDFObj(FlinkPlan compiledPlan,
-            List<URL> libraries, List<URL> classpaths, ClassLoader classLoader, SavepointRestoreSettings savepointSettings, DFJobPOPJ dfJobPOPJ)
+            List<URL> libraries, List<URL> classpaths, ClassLoader l, SavepointRestoreSettings savepointSettings, DFJobPOPJ j)
 		throws ProgramInvocationException {
 		JobGraph job = getJobGraph(compiledPlan, libraries, classpaths, savepointSettings);
 		// Keep the jobID to DFPOPJ
-		dfJobPOPJ.setFlinkIDToJobConfig(job.getJobID().toString());
-		return submitJob(job, classLoader);
+		j.setFlinkIDToJobConfig(job.getJobID().toString());
+		return submitJob(job, l);
 		}
 
 
 	private JobGraph getJobGraph(FlinkPlan optPlan, List<URL> jarFiles, List<URL> classpaths, SavepointRestoreSettings savepointSettings) {
 		JobGraph job;
-		if (optPlan instanceof StreamingPlan) {
+		if (!(optPlan instanceof StreamingPlan))
+			job = (new JobGraphGenerator(this.flinkConfig)).compileJobGraph((OptimizedPlan) optPlan);
+		else {
 			job = ((StreamingPlan) optPlan).getJobGraph();
 			job.setSavepointRestoreSettings(savepointSettings);
-		} else {
-			JobGraphGenerator gen = new JobGraphGenerator(this.flinkConfig);
-			job = gen.compileJobGraph((OptimizedPlan) optPlan);
 		}
 
-		for (URL jar : jarFiles) {
+		for (URL jar : jarFiles)
 			try {
 				job.addJar(new Path(jar.toURI()));
 			} catch (URISyntaxException e) {
 				throw new RuntimeException("URL is invalid. This should not happen.", e);
 			}
-		}
  
 		job.setClasspaths(classpaths);
 

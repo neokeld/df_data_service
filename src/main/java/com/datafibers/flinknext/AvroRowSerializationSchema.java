@@ -28,7 +28,7 @@ import java.util.Properties;
  */
 public class AvroRowSerializationSchema implements SerializationSchema<Tuple2<Boolean, Row>> {
 
-    private static final long serialVersionUID = 4330538776656642780L;
+    private static final long serialVersionUID = 0x3C192A12BCAC82DCL;
     private static final Logger LOG = Logger.getLogger(AvroRowSerializationSchema.class);
 
 
@@ -55,7 +55,7 @@ public class AvroRowSerializationSchema implements SerializationSchema<Tuple2<Bo
         this.properties = properties;
     }
     @Override
-    public byte[] serialize(Tuple2<Boolean, Row> row) {
+    public byte[] serialize(Tuple2<Boolean, Row> b) {
         try {
             int schemaId = Integer.parseInt(properties.get(ConstantApp.PK_SCHEMA_ID_OUTPUT).toString());
 
@@ -66,8 +66,7 @@ public class AvroRowSerializationSchema implements SerializationSchema<Tuple2<Bo
             BinaryEncoder encoder = EncoderFactory.get().directBinaryEncoder(out, null);
             Schema schema = new Schema.Parser().parse(properties.get(ConstantApp.PK_SCHEMA_STR_OUTPUT).toString());
 
-            DatumWriter<Object> writer = new GenericDatumWriter<Object>(schema);
-            writer.write(convertToRecord(schema, row.f1), encoder); //TODO TO CHECK
+            new GenericDatumWriter<Object>(schema).write(convertToRecord(schema, b.f1), encoder); //TODO TO CHECK
             encoder.flush();
 
             byte[] bytes = out.toByteArray();
@@ -87,38 +86,34 @@ public class AvroRowSerializationSchema implements SerializationSchema<Tuple2<Bo
      * Converts a (nested) Flink Row into Avro's {@link GenericRecord}.
      * Strings are converted into Avro's {@link Utf8} fields.
      */
-    private static Object convertToRecord(Schema schema, Object rowObj) {
-
-        if (rowObj instanceof Row) {
-
-            // records can be wrapped in a union
-            if (schema.getType() == Schema.Type.UNION) {
-                final List<Schema> types = schema.getTypes();
-                if (types.size() == 2 && types.get(0).getType() == Schema.Type.NULL && types.get(1).getType() == Schema.Type.RECORD) {
-                    schema = types.get(1);
-                }
-                else if (types.size() == 2 && types.get(0).getType() == Schema.Type.RECORD && types.get(1).getType() == Schema.Type.NULL) {
-                    schema = types.get(0);
-                }
-                else {
-                    throw new RuntimeException("Currently we only support schemas of the following form: UNION[null, RECORD] or UNION[RECORD, NULL] Given: " + schema);
-                }
-            } else if (schema.getType() != Schema.Type.RECORD) {
-                throw new RuntimeException("Record type for row type expected. But is: " + schema);
-            }
-            final List<Schema.Field> fields = schema.getFields();
-            final GenericRecord record = new GenericData.Record(schema);
-            final Row row = (Row) rowObj;
-            for (int i = 0; i < fields.size(); i++) {
-                final Schema.Field field = fields.get(i);
-                record.put(field.pos(), convertToRecord(field.schema(), row.getField(i)));
-            }
-            return record;
-        } else if (rowObj instanceof String) {
-            return new Utf8((String) rowObj);
-        } else {
-            return rowObj;
-        }
-    }
+    private static Object convertToRecord(Schema s, Object rowObj) {
+		if (!(rowObj instanceof Row))
+			return !(rowObj instanceof String) ? rowObj : new Utf8((String) rowObj);
+		if (s.getType() != Schema.Type.UNION) {
+			if (s.getType() != Schema.Type.RECORD)
+				throw new RuntimeException("Record type for row type expected. But is: " + s);
+		} else {
+			final List<Schema> types = s.getTypes();
+			if (types.size() == 2 && types.get(0).getType() == Schema.Type.NULL
+					&& types.get(1).getType() == Schema.Type.RECORD)
+				s = types.get(1);
+			else {
+				if (types.size() != 2 || types.get(0).getType() != Schema.Type.RECORD
+						|| types.get(1).getType() != Schema.Type.NULL)
+					throw new RuntimeException(
+							"Currently we only support schemas of the following form: UNION[null, RECORD] or UNION[RECORD, NULL] Given: "
+									+ s);
+				s = types.get(0);
+			}
+		}
+		final List<Schema.Field> fields = s.getFields();
+		final GenericRecord record = new GenericData.Record(s);
+		final Row row = (Row) rowObj;
+		for (int i = 0; i < fields.size(); ++i) {
+			final Schema.Field field = fields.get(i);
+			record.put(field.pos(), convertToRecord(field.schema(), row.getField(i)));
+		}
+		return record;
+	}
 
 }

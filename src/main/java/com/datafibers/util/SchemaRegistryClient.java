@@ -32,20 +32,18 @@ public class SchemaRegistryClient {
     public static Schema getSchemaFromRegistry (String schemaUri, String schemaSubject, String schemaVersion) {
 
         if(schemaVersion == null) schemaVersion = "latest";
-        String fullUrl = String.format("%s/subjects/%s/versions/%s", schemaUri, schemaSubject, schemaVersion);
+        String fullUrl = String.format("%s/subjects/%s/versions/%s", schemaUri, schemaSubject, schemaVersion),
+				schemaString;
 
-        String schemaString;
         BufferedReader br = null;
         try {
             StringBuilder response = new StringBuilder();
             String line;
             br = new BufferedReader(new InputStreamReader(new URL(fullUrl).openStream()));
-            while ((line = br.readLine()) != null) {
-                response.append(line);
-            }
+            while ((line = br.readLine()) != null)
+				response.append(line);
 
-            JsonNode responseJson = new ObjectMapper().readValue(response.toString(), JsonNode.class);
-            schemaString = responseJson.get("schema").getValueAsText();
+            schemaString = new ObjectMapper().readValue(response.toString(), JsonNode.class).get("schema").getValueAsText();
 
             try {
                 return new Schema.Parser().parse(schemaString);
@@ -66,24 +64,21 @@ public class SchemaRegistryClient {
     }
 
     public static Schema getSchemaFromRegistrywithDefault (String schemaUri, String schemaSubject, String schemaVersion) {
-        if(!schemaUri.contains("http")) {
-            schemaUri = "http://" + schemaUri;
-        }
+        if(!schemaUri.contains("http"))
+			schemaUri = "http://" + schemaUri;
         if(schemaVersion == null) schemaVersion = "latest";
-        String fullUrl = String.format("%s/subjects/%s/versions/%s", schemaUri, schemaSubject, schemaVersion);
+        String fullUrl = String.format("%s/subjects/%s/versions/%s", schemaUri, schemaSubject, schemaVersion),
+				schemaString;
 
-        String schemaString;
         BufferedReader br = null;
         try {
             StringBuilder response = new StringBuilder();
             String line;
             br = new BufferedReader(new InputStreamReader(new URL(fullUrl).openStream()));
-            while ((line = br.readLine()) != null) {
-                response.append(line);
-            }
+            while ((line = br.readLine()) != null)
+				response.append(line);
 
-            JsonNode responseJson = new ObjectMapper().readValue(response.toString(), JsonNode.class);
-            schemaString = responseJson.get("schema").getValueAsText();
+            schemaString = new ObjectMapper().readValue(response.toString(), JsonNode.class).get("schema").getValueAsText();
 
             try {
                 return new Schema.Parser().parse(schemaString);
@@ -103,59 +98,39 @@ public class SchemaRegistryClient {
         return null;
     }
 
-    public static Schema getVersionedSchemaFromProperty (Properties properties, String schemaVersion) {
+    public static Schema getVersionedSchemaFromProperty (Properties p, String schemaVersion) {
 
-        String schemaUri;
-        String schemaSubject = "";
-
-        if (properties.getProperty("schema.registry") == null) {
-            schemaUri = "http://localhost:8081";
-        } else {
-            schemaUri = "http://" + properties.getProperty("schema.registry");
-        }
-
-        if (properties.getProperty("schema.subject") == null) {
-            LOG.error("schema.subject must be set in the property");
-        } else {
-            schemaSubject = properties.getProperty("schema.subject");
-        }
+        String schemaUri = "http://"
+				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry") + ""), schemaSubject = "";
+        if (p.getProperty("schema.subject") != null)
+			schemaSubject = p.getProperty("schema.subject");
+		else
+			LOG.error("schema.subject must be set in the property");
 
         return getSchemaFromRegistry(schemaUri, schemaSubject, schemaVersion);
     }
 
-    public static String getLatestSchemaNodeFromProperty (Properties properties) {
+    public static String getLatestSchemaNodeFromProperty (Properties p) {
 
-        String schemaUri;
-        String schemaSubject = "";
+        String schemaUri = "http://"
+				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry") + ""), schemaSubject = "";
+        if (p.getProperty("schema.subject") != null)
+			schemaSubject = p.getProperty("schema.subject");
+		else
+			LOG.error("schema.subject must be set in the property");
 
-        if (properties.getProperty("schema.registry") == null) {
-            schemaUri = "http://localhost:8081";
-        } else {
-            schemaUri = "http://" + properties.getProperty("schema.registry");
-        }
-
-        if (properties.getProperty("schema.subject") == null) {
-            LOG.error("schema.subject must be set in the property");
-            //schemaSubject = topic + "-value";
-        } else {
-            schemaSubject = properties.getProperty("schema.subject");
-        }
-
-        String schemaVersion = "latest";
-        String fullUrl = String.format("%s/subjects/%s/versions/%s", schemaUri, schemaSubject, schemaVersion);
-
-        String schemaString="";
+        String schemaVersion = "latest",
+				fullUrl = String.format("%s/subjects/%s/versions/%s", schemaUri, schemaSubject, schemaVersion),
+				schemaString = "";
         BufferedReader br = null;
         try {
         	StringBuilder response = new StringBuilder();
         	String line;
         	br = new BufferedReader(new InputStreamReader(new URL(fullUrl).openStream()));
-        	while ((line = br.readLine()) != null) {
-        		response.append(line);
-        	}
+        	while ((line = br.readLine()) != null)
+				response.append(line);
 
-        	JsonNode responseJson = new ObjectMapper().readValue(response.toString(), JsonNode.class);
-        	schemaString = responseJson.get("schema").getValueAsText();
+        	schemaString = new ObjectMapper().readValue(response.toString(), JsonNode.class).get("schema").getValueAsText();
         	LOG.warn("schemaString: " + schemaString);
         	return schemaString;
          } catch(Exception ex) {
@@ -171,163 +146,120 @@ public class SchemaRegistryClient {
         return null;
         }
 
-    public static Schema getLatestSchemaFromProperty (Properties properties, String schemaSubjectAttributeName) {
+    public static Schema getLatestSchemaFromProperty (Properties p, String schemaSubjectAttributeName) {
 
-        String schemaUri;
-        String schemaSubject = "";
-
-        if (properties.getProperty("schema.registry") == null) {
-            schemaUri = "http://localhost:8081";
-        } else {
-            schemaUri = "http://" + properties.getProperty("schema.registry");
-        }
-
-        if (properties.getProperty(schemaSubjectAttributeName) == null) {
-            LOG.error("schema.subject must be set in the property");
-            //schemaSubject = topic + "-value";
-        } else {
-            schemaSubject = properties.getProperty(schemaSubjectAttributeName);
-        }
+        String schemaUri = "http://"
+				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry") + ""), schemaSubject = "";
+        if (p.getProperty(schemaSubjectAttributeName) == null)
+			LOG.error("schema.subject must be set in the property");
+		else
+			schemaSubject = p.getProperty(schemaSubjectAttributeName);
 
         return getSchemaFromRegistry(schemaUri, schemaSubject, "latest");
     }
 
-    public static Schema getLatestSchemaFromProperty (Properties properties) {
+    public static Schema getLatestSchemaFromProperty (Properties p) {
 
-        String schemaUri;
-        String schemaSubject = "";
-
-        if (properties.getProperty("schema.registry") == null) {
-            schemaUri = "http://localhost:8081";
-        } else {
-            schemaUri = "http://" + properties.getProperty("schema.registry");
-        }
-
-        if (properties.getProperty("schema.subject") == null) {
-            LOG.error("schema.subject must be set in the property");
-            //schemaSubject = topic + "-value";
-        } else {
-            schemaSubject = properties.getProperty("schema.subject");
-        }
+        String schemaUri = "http://"
+				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry") + ""), schemaSubject = "";
+        if (p.getProperty("schema.subject") != null)
+			schemaSubject = p.getProperty("schema.subject");
+		else
+			LOG.error("schema.subject must be set in the property");
 
         return getSchemaFromRegistry(schemaUri, schemaSubject, "latest");
     }
 
-    public static int getLatestSchemaIDFromProperty (Properties properties, String schemaSubjectAttributeName) {
+    public static int getLatestSchemaIDFromProperty (Properties p, String schemaSubjectAttributeName) {
+		String schemaUri, schemaSubject = "";
+		int schemaId = 0;
+		schemaUri = "http://"
+				+ (p.getProperty("schema.registry") == null ? "localhost:8081" : p.getProperty("schema.registry") + "");
+		if (p.getProperty(schemaSubjectAttributeName) == null) {
+			LOG.error("schema.subject must be set in the property");
+			return -1;
+		}
+		schemaSubject = p.getProperty(schemaSubjectAttributeName);
+		String schemaVersion = "latest",
+				fullUrl = String.format("%s/subjects/%s/versions/%s", schemaUri, schemaSubject, schemaVersion);
+		BufferedReader br = null;
+		try {
+			StringBuilder response = new StringBuilder();
+			String line;
+			br = new BufferedReader(new InputStreamReader(new URL(fullUrl).openStream()));
+			while ((line = br.readLine()) != null)
+				response.append(line);
+			schemaId = new ObjectMapper().readValue(response.toString(), JsonNode.class).get("id").getValueAsInt();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			try {
+				if (br != null)
+					br.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return schemaId;
+	}
 
-        String schemaUri;
-        String schemaSubject = "";
-        int schemaId=0;
-
-        if (properties.getProperty("schema.registry") == null) {
-            schemaUri = "http://localhost:8081";
-        } else {
-            schemaUri = "http://" + properties.getProperty("schema.registry");
-        }
-
-        if (properties.getProperty(schemaSubjectAttributeName) == null) {
-            LOG.error("schema.subject must be set in the property");
-            return -1;
-        } else {
-            schemaSubject = properties.getProperty(schemaSubjectAttributeName);
-        }
-
-        String schemaVersion = "latest";
-        String fullUrl = String.format("%s/subjects/%s/versions/%s", schemaUri, schemaSubject, schemaVersion);
-
-        BufferedReader br = null;
-        try {
-            StringBuilder response = new StringBuilder();
-            String line;
-            br = new BufferedReader(new InputStreamReader(new URL(fullUrl).openStream()));
-            while ((line = br.readLine()) != null) {
-                response.append(line);
-            }
-
-            JsonNode responseJson = new ObjectMapper().readValue(response.toString(), JsonNode.class);
-            schemaId = responseJson.get("id").getValueAsInt();
-
-         } catch(Exception ex) {
-            ex.printStackTrace();
-        } finally {
-            try {
-                if (br != null)
-                    br.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return schemaId;
-    }
-
-    public static String[] getFieldNames (Schema schema) {
+    public static String[] getFieldNames (Schema s) {
 
         List<String> stringList = new ArrayList<String>();
-        if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
-            for (org.apache.avro.Schema.Field field : schema.getFields()) {
-                stringList.add(field.name());
-            }
-        }
-        String[] fieldNames = stringList.toArray( new String[] {} );
-        return fieldNames;
+        if (RECORD.equals(s.getType()) && s.getFields() != null && !s.getFields().isEmpty())
+			for (org.apache.avro.Schema.Field field : s.getFields())
+				stringList.add(field.name());
+        return stringList.toArray(new String[] {});
     }
 
-    public static String[] getFieldNamesFromProperty (Properties properties) {
-        Schema schema = getLatestSchemaFromProperty(properties);
+    public static String[] getFieldNamesFromProperty (Properties p) {
+        Schema schema = getLatestSchemaFromProperty(p);
 
         List<String> stringList = new ArrayList<String>();
-        if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
-            for (org.apache.avro.Schema.Field field : schema.getFields()) {
-                stringList.add(field.name());
-            }
-        }
-        String[] fieldNames = stringList.toArray( new String[] {} );
-        return fieldNames;
+        if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
+			for (org.apache.avro.Schema.Field field : schema.getFields())
+				stringList.add(field.name());
+        return stringList.toArray(new String[] {});
     }
 
-    public static String[] getFieldNamesFromProperty (Properties properties, String schemaSubjectAttributeName) {
-        Schema schema = getLatestSchemaFromProperty(properties, schemaSubjectAttributeName);
+    public static String[] getFieldNamesFromProperty (Properties p, String schemaSubjectAttributeName) {
+        Schema schema = getLatestSchemaFromProperty(p, schemaSubjectAttributeName);
 
         List<String> stringList = new ArrayList<String>();
-        if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
-            for (org.apache.avro.Schema.Field field : schema.getFields()) {
-                stringList.add(field.name());
-            }
-        }
-        String[] fieldNames = stringList.toArray( new String[] {} );
-        return fieldNames;
+        if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
+			for (org.apache.avro.Schema.Field field : schema.getFields())
+				stringList.add(field.name());
+        return stringList.toArray(new String[] {});
     }
 
-    public static Class<?>[] getFieldTypes (Schema schema) {
+    public static Class<?>[] getFieldTypes (Schema s) {
 
-        Class<?>[] fieldTypes = new Class[schema.getFields().size()];
+        Class<?>[] fieldTypes = new Class[s.getFields().size()];
         int index = 0;
         String typeName;
 
         try {
-            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
-                for (org.apache.avro.Schema.Field field : schema.getFields()) {
-                    typeName = field.schema().getType().getName().toLowerCase();
-                    // Mapping Avro type to Java type - TODO Complex type is not supported yet
-                    switch (typeName) {
-                        case "boolean":
-                        case "string":
-                        case "long":
-                        case "float":
-                            fieldTypes[index] = Class.forName("java.lang." + StringUtils.capitalize(typeName));
-                            break;
-                        case "bytes":
-                            fieldTypes[index] = Class.forName("java.lang.Byte");
-                            break;
-                        case "int":
-                            fieldTypes[index] = Class.forName("java.lang.Integer");
-                            break;
-                        default:
-                            fieldTypes[index] = Class.forName("java.lang.String");
-                    }
-                    index ++;
-                }
-            }
+            if (RECORD.equals(s.getType()) && s.getFields() != null && !s.getFields().isEmpty())
+				for (org.apache.avro.Schema.Field field : s.getFields()) {
+					typeName = field.schema().getType().getName().toLowerCase();
+					switch (typeName) {
+					case "boolean":
+					case "string":
+					case "long":
+					case "float":
+						fieldTypes[index] = Class.forName("java.lang." + StringUtils.capitalize(typeName));
+						break;
+					case "bytes":
+						fieldTypes[index] = Class.forName("java.lang.Byte");
+						break;
+					case "int":
+						fieldTypes[index] = Class.forName("java.lang.Integer");
+						break;
+					default:
+						fieldTypes[index] = Class.forName("java.lang.String");
+					}
+					++index;
+				}
         } catch (ClassNotFoundException cnf) {
             cnf.printStackTrace();
         }
@@ -335,38 +267,36 @@ public class SchemaRegistryClient {
         return fieldTypes;
     }
 
-    public static Class<?>[] getFieldTypesFromProperty (Properties properties) {
+    public static Class<?>[] getFieldTypesFromProperty (Properties p) {
 
-        Schema schema = getLatestSchemaFromProperty(properties);
+        Schema schema = getLatestSchemaFromProperty(p);
 
         Class<?>[] fieldTypes = new Class[schema.getFields().size()];
         int index = 0;
         String typeName;
 
         try {
-            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
-                for (org.apache.avro.Schema.Field field : schema.getFields()) {
-                    typeName = field.schema().getType().getName().toLowerCase();
-                    // Mapping Avro type to Java type - TODO Complex type is not supported yet
-                    switch (typeName) {
-                        case "boolean":
-                        case "string":
-                        case "long":
-                        case "float":
-                            fieldTypes[index] = Class.forName("java.lang." + StringUtils.capitalize(typeName));
-                            break;
-                        case "bytes":
-                            fieldTypes[index] = Class.forName("java.lang.Byte");
-                            break;
-                        case "int":
-                            fieldTypes[index] = Class.forName("java.lang.Integer");
-                            break;
-                        default:
-                            fieldTypes[index] = Class.forName("java.lang.String");
-                    }
-                    index ++;
-                }
-            }
+            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
+				for (org.apache.avro.Schema.Field field : schema.getFields()) {
+					typeName = field.schema().getType().getName().toLowerCase();
+					switch (typeName) {
+					case "boolean":
+					case "string":
+					case "long":
+					case "float":
+						fieldTypes[index] = Class.forName("java.lang." + StringUtils.capitalize(typeName));
+						break;
+					case "bytes":
+						fieldTypes[index] = Class.forName("java.lang.Byte");
+						break;
+					case "int":
+						fieldTypes[index] = Class.forName("java.lang.Integer");
+						break;
+					default:
+						fieldTypes[index] = Class.forName("java.lang.String");
+					}
+					++index;
+				}
         } catch (ClassNotFoundException cnf) {
             cnf.printStackTrace();
         }
@@ -374,38 +304,36 @@ public class SchemaRegistryClient {
         return fieldTypes;
     }
 
-    public static Class<?>[] getFieldTypesFromProperty (Properties properties, String schemaSubjectAttributeName) {
+    public static Class<?>[] getFieldTypesFromProperty (Properties p, String schemaSubjectAttributeName) {
 
-        Schema schema = getLatestSchemaFromProperty(properties, schemaSubjectAttributeName);
+        Schema schema = getLatestSchemaFromProperty(p, schemaSubjectAttributeName);
 
         Class<?>[] fieldTypes = new Class[schema.getFields().size()];
         int index = 0;
         String typeName;
 
         try {
-            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
-                for (org.apache.avro.Schema.Field field : schema.getFields()) {
-                    typeName = field.schema().getType().getName().toLowerCase();
-                    // Mapping Avro type to Java type - TODO Complex type is not supported yet
-                    switch (typeName) {
-                        case "boolean":
-                        case "string":
-                        case "long":
-                        case "float":
-                            fieldTypes[index] = Class.forName("java.lang." + StringUtils.capitalize(typeName));
-                            break;
-                        case "bytes":
-                            fieldTypes[index] = Class.forName("java.lang.Byte");
-                            break;
-                        case "int":
-                            fieldTypes[index] = Class.forName("java.lang.Integer");
-                            break;
-                        default:
-                            fieldTypes[index] = Class.forName("java.lang.String");
-                    }
-                    index ++;
-                }
-            }
+            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
+				for (org.apache.avro.Schema.Field field : schema.getFields()) {
+					typeName = field.schema().getType().getName().toLowerCase();
+					switch (typeName) {
+					case "boolean":
+					case "string":
+					case "long":
+					case "float":
+						fieldTypes[index] = Class.forName("java.lang." + StringUtils.capitalize(typeName));
+						break;
+					case "bytes":
+						fieldTypes[index] = Class.forName("java.lang.Byte");
+						break;
+					case "int":
+						fieldTypes[index] = Class.forName("java.lang.Integer");
+						break;
+					default:
+						fieldTypes[index] = Class.forName("java.lang.String");
+					}
+					++index;
+				}
         } catch (ClassNotFoundException cnf) {
             cnf.printStackTrace();
         }
@@ -413,38 +341,37 @@ public class SchemaRegistryClient {
         return fieldTypes;
     }
 
-    public static TypeInformation<?>[] getFieldTypesInfoFromProperty (Properties properties) {
+    public static TypeInformation<?>[] getFieldTypesInfoFromProperty (Properties p) {
 
-        Schema schema = getLatestSchemaFromProperty(properties);
+        Schema schema = getLatestSchemaFromProperty(p);
 
         TypeInformation<?>[] fieldTypes = new TypeInformation[schema.getFields().size()];
         int index = 0;
         String typeName;
 
         try {
-            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
-                for (org.apache.avro.Schema.Field field : schema.getFields()) {
-                    typeName = field.schema().getType().getName().toLowerCase();
-                    // Mapping Avro type to Java type - TODO Complex type is not supported yet
-                    switch (typeName) {
-                        case "boolean":
-                        case "string":
-                        case "long":
-                        case "float":
-                            fieldTypes[index] = TypeInformation.of(Class.forName("java.lang." + StringUtils.capitalize(typeName)));
-                            break;
-                        case "bytes":
-                            fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.Byte"));
-                            break;
-                        case "int":
-                            fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.Integer"));
-                            break;
-                        default:
-                            fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.String"));
-                    }
-                    index ++;
-                }
-            }
+            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
+				for (org.apache.avro.Schema.Field field : schema.getFields()) {
+					typeName = field.schema().getType().getName().toLowerCase();
+					switch (typeName) {
+					case "boolean":
+					case "string":
+					case "long":
+					case "float":
+						fieldTypes[index] = TypeInformation
+								.of(Class.forName("java.lang." + StringUtils.capitalize(typeName)));
+						break;
+					case "bytes":
+						fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.Byte"));
+						break;
+					case "int":
+						fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.Integer"));
+						break;
+					default:
+						fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.String"));
+					}
+					++index;
+				}
         } catch (ClassNotFoundException cnf) {
             cnf.printStackTrace();
         }
@@ -452,38 +379,37 @@ public class SchemaRegistryClient {
         return fieldTypes;
     }
 
-    public static TypeInformation<?>[] getFieldTypesInfoFromProperty (Properties properties, String schemaSubjectAttributeName) {
+    public static TypeInformation<?>[] getFieldTypesInfoFromProperty (Properties p, String schemaSubjectAttributeName) {
 
-        Schema schema = getLatestSchemaFromProperty(properties, schemaSubjectAttributeName);
+        Schema schema = getLatestSchemaFromProperty(p, schemaSubjectAttributeName);
 
         TypeInformation<?>[] fieldTypes = new TypeInformation[schema.getFields().size()];
         int index = 0;
         String typeName;
 
         try {
-            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty()) {
-                for (org.apache.avro.Schema.Field field : schema.getFields()) {
-                    typeName = field.schema().getType().getName().toLowerCase();
-                    // Mapping Avro type to Java type - TODO Complex type is not supported yet
-                    switch (typeName) {
-                        case "boolean":
-                        case "string":
-                        case "long":
-                        case "float":
-                            fieldTypes[index] = TypeInformation.of(Class.forName("java.lang." + StringUtils.capitalize(typeName)));
-                            break;
-                        case "bytes":
-                            fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.Byte"));
-                            break;
-                        case "int":
-                            fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.Integer"));
-                            break;
-                        default:
-                            fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.String"));
-                    }
-                    index ++;
-                }
-            }
+            if (RECORD.equals(schema.getType()) && schema.getFields() != null && !schema.getFields().isEmpty())
+				for (org.apache.avro.Schema.Field field : schema.getFields()) {
+					typeName = field.schema().getType().getName().toLowerCase();
+					switch (typeName) {
+					case "boolean":
+					case "string":
+					case "long":
+					case "float":
+						fieldTypes[index] = TypeInformation
+								.of(Class.forName("java.lang." + StringUtils.capitalize(typeName)));
+						break;
+					case "bytes":
+						fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.Byte"));
+						break;
+					case "int":
+						fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.Integer"));
+						break;
+					default:
+						fieldTypes[index] = TypeInformation.of(Class.forName("java.lang.String"));
+					}
+					++index;
+				}
         } catch (ClassNotFoundException cnf) {
             cnf.printStackTrace();
         }
@@ -491,35 +417,24 @@ public class SchemaRegistryClient {
         return fieldTypes;
     }
 
-    public static void addSchemaIfNotAvailable(Properties properties) {
+    public static void addSchemaIfNotAvailable(Properties p) {
 
-        String schemaUri;
-        String subject = properties.getProperty(ConstantApp.PK_SCHEMA_SUB_OUTPUT);
-        String schemaString = properties.getProperty(ConstantApp.PK_SCHEMA_STR_OUTPUT);
-        String srKey = ConstantApp.PK_KAFKA_SCHEMA_REGISTRY_HOST_PORT.replace("_", ".");
-
-        if (properties.getProperty(srKey) == null) {
-            schemaUri = "http://localhost:8081";
-        } else {
-            schemaUri = "http://" + properties.getProperty(srKey);
-        }
+        String schemaUri, subject = p.getProperty(ConstantApp.PK_SCHEMA_SUB_OUTPUT),
+				schemaString = p.getProperty(ConstantApp.PK_SCHEMA_STR_OUTPUT),
+				srKey = ConstantApp.PK_KAFKA_SCHEMA_REGISTRY_HOST_PORT.replace("_", ".");
+        schemaUri = "http://" + (p.getProperty(srKey) == null ? "localhost:8081" : p.getProperty(srKey) + "");
 
         String schemaRegistryRestURL = schemaUri + "/subjects/" + subject + "/versions";
 
         try {
-            HttpResponse<String> schemaRes = Unirest.get(schemaRegistryRestURL + "/latest")
-                    .header("accept", HTTP_HEADER_APPLICATION_JSON_CHARSET)
-                    .asString();
-
-            if(schemaRes.getStatus() == ConstantApp.STATUS_CODE_NOT_FOUND) { // Add the meta sink schema
-                Unirest.post(schemaRegistryRestURL)
-                        .header("accept", HTTP_HEADER_APPLICATION_JSON_CHARSET)
-                        .header("Content-Type", AVRO_REGISTRY_CONTENT_TYPE)
-                        .body(schemaString).asString();
-                LOG.info("Subject - " + subject + " Not Found, so create it.");
-            } else {
-                LOG.info("Subject - " + subject + " Found.");
-            }
+            if (Unirest.get(schemaRegistryRestURL + "/latest").header("accept", HTTP_HEADER_APPLICATION_JSON_CHARSET)
+					.asString().getStatus() != ConstantApp.STATUS_CODE_NOT_FOUND)
+				LOG.info("Subject - " + subject + " Found.");
+			else {
+				Unirest.post(schemaRegistryRestURL).header("accept", HTTP_HEADER_APPLICATION_JSON_CHARSET)
+						.header("Content-Type", AVRO_REGISTRY_CONTENT_TYPE).body(schemaString).asString();
+				LOG.info("Subject - " + subject + " Not Found, so create it.");
+			}
         } catch (UnirestException ue) {
             ue.printStackTrace();
         }
@@ -527,13 +442,11 @@ public class SchemaRegistryClient {
 
     public static void addSchemaFromTableResult(String schemaUri, String subject, Table result) {
 
-        if (schemaUri == null) {
-            schemaUri = "http://localhost:8081";
-        }
+        if (schemaUri == null)
+			schemaUri = "http://localhost:8081";
 
-        if(!schemaUri.startsWith("http")) {
-            schemaUri = "http://" + schemaUri;
-        }
+        if(!schemaUri.startsWith("http"))
+			schemaUri = "http://" + schemaUri;
 
         String schemaRegistryRestURL = schemaUri + "/subjects/" + subject + "/versions";
 
@@ -542,17 +455,14 @@ public class SchemaRegistryClient {
                     .header("accept", HTTP_HEADER_APPLICATION_JSON_CHARSET)
                     .asString();
 
-            if(schemaRes.getStatus() == ConstantApp.STATUS_CODE_NOT_FOUND) { // Add the meta sink schema
-                schemaRes = Unirest.post(schemaRegistryRestURL)
-                        .header("accept", HTTP_HEADER_APPLICATION_JSON_CHARSET)
-                        .header("Content-Type", AVRO_REGISTRY_CONTENT_TYPE)
-                        .body(tableAPIToAvroSchema(result, subject.replaceAll("-value", ""))) //name in body cannot use -value
-                        .asString();
-
-                LOG.info("Subject - " + subject + " Not Found, so create it." + schemaRes.getStatus());
-            } else {
-                LOG.info("Subject - " + subject + " Found.");
-            }
+            if (schemaRes.getStatus() != ConstantApp.STATUS_CODE_NOT_FOUND)
+				LOG.info("Subject - " + subject + " Found.");
+			else {
+				schemaRes = Unirest.post(schemaRegistryRestURL).header("accept", HTTP_HEADER_APPLICATION_JSON_CHARSET)
+						.header("Content-Type", AVRO_REGISTRY_CONTENT_TYPE)
+						.body(tableAPIToAvroSchema(result, subject.replaceAll("-value", ""))).asString();
+				LOG.info("Subject - " + subject + " Not Found, so create it." + schemaRes.getStatus());
+			}
         } catch (UnirestException ue) {
             ue.printStackTrace();
         }
@@ -560,11 +470,9 @@ public class SchemaRegistryClient {
 
     public static String tableAPIToAvroSchema(Table result, String subject) {
         JsonArray fields = new JsonArray();
-        for(String colName : result.getSchema().getColumnNames()) {
-            fields.add(new JsonObject()
-                    .put("name", colName)
-                    .put("type", tableTypeToAvroType(result.getSchema().getType(colName).toString())));
-        }
+        for(String colName : result.getSchema().getColumnNames())
+			fields.add(new JsonObject().put("name", colName).put("type",
+					tableTypeToAvroType(result.getSchema().getType(colName).toString())));
 
         return new JsonObject().put("schema", new JsonObject()
                 .put("type", "record")
@@ -575,8 +483,7 @@ public class SchemaRegistryClient {
     }
 
     public static String tableTypeToAvroType(String type) {
-        String returnType;
-        String cleanedType = type.toLowerCase().replaceAll("some", "").replace("(", "").replace(")", "");
+        String returnType, cleanedType = type.toLowerCase().replaceAll("some", "").replace("(", "").replace(")", "");
         switch (cleanedType) {
             case "integer":
             case "short":

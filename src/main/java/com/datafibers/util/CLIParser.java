@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 
 public class CLIParser {
     private static final Logger LOG = Logger.getLogger(CLIParser.class);
-    private String[] args = null;
+    private String[] args;
     private Options options = new Options();
     public static String run_mode = "";
     public static String service_mode = "";
@@ -61,35 +61,18 @@ public class CLIParser {
                 LogManager.getLogger(ProcessorTransformSpark.class).setLevel(Level.DEBUG);
             }
 
-            if (cmd.hasOption("m")) {
-                if(cmd.getOptionValue("m").equalsIgnoreCase("cluster")) {
-                    this.run_mode = "Cluster"; // Cluster
-                } else {
-                    this.run_mode = "Standalone"; // Standalone
-                }
-                // Whatever you want to do with the setting goes here
-            }
+            if (cmd.hasOption("m"))
+				this.run_mode = "cluster".equalsIgnoreCase(cmd.getOptionValue("m")) ? "Cluster" : "Standalone";
 
-            if (cmd.hasOption("u")) {
-                if(cmd.getOptionValue("u").equalsIgnoreCase("ui")) {
-                    this.service_mode = "WebUI"; // UI only
-                } else {
-                    this.service_mode = "Processor"; // Processor Only
-                }
-            }
+            if (cmd.hasOption("u"))
+				this.service_mode = "ui".equalsIgnoreCase(cmd.getOptionValue("u")) ? "WebUI" : "Processor";
 
-            if (cmd.hasOption("t")) {
-                if(cmd.getOptionValue("t").matches("[-+]?\\d*\\.?\\d+")) {
-                    this.test_mode = "TEST_CASE_" + cmd.getOptionValue("t");
-                } else {
-                    this.test_mode = "TEST_CASE_1";
-                }
-            }
+            if (cmd.hasOption("t"))
+				this.test_mode = "TEST_CASE_"
+						+ (!cmd.getOptionValue("t").matches("[-+]?\\d*\\.?\\d+") ? "1" : cmd.getOptionValue("t") + "");
 
-            if (cmd.hasOption("a")) {
-                if(cmd.getOptionValue("a") != null)
-                    this.admin_tool = "ADMIN_TOOL_" + cmd.getOptionValue("a");
-            }
+            if (cmd.hasOption("a") && cmd.getOptionValue("a") != null)
+				this.admin_tool = "ADMIN_TOOL_" + cmd.getOptionValue("a");
 
         } catch (ParseException e) {
             LOG.warn(DFAPIMessage.logResponseMessage(9020, "exception - " + e.getCause()));
@@ -116,9 +99,7 @@ public class CLIParser {
     }
 
     public void help() {
-        // This prints out some help
-        HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("Main", options);
+        new HelpFormatter().printHelp("Main", options);
         System.exit(0);
     }
 }

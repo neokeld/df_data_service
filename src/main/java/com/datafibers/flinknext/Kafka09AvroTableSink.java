@@ -50,8 +50,8 @@ public class Kafka09AvroTableSink extends KafkaAvroTableSink {
 	}
 
 	@Override
-	protected FlinkKafkaProducerBase<Tuple2<Boolean, Row>> createKafkaProducer(String topic, Properties properties, SerializationSchema<Tuple2<Boolean, Row>> serializationSchema, FlinkKafkaPartitioner<Tuple2<Boolean, Row>> partitioner) {
-		return new FlinkKafkaProducer09<>(topic, serializationSchema, properties, partitioner);
+	protected FlinkKafkaProducerBase<Tuple2<Boolean, Row>> createKafkaProducer(String topic, Properties p, SerializationSchema<Tuple2<Boolean, Row>> b, FlinkKafkaPartitioner<Tuple2<Boolean, Row>> partitioner) {
+		return new FlinkKafkaProducer09<>(topic, b, p, partitioner);
 	}
 
 	@Override
@@ -61,9 +61,9 @@ public class Kafka09AvroTableSink extends KafkaAvroTableSink {
 
 	
 	@Override
-	protected SerializationSchema<Tuple2<Boolean, Row>> createSerializationSchema(Properties properties) {
+	protected SerializationSchema<Tuple2<Boolean, Row>> createSerializationSchema(Properties p) {
 		// TODO Auto-generated method stub
-		return new AvroRowSerializationSchema(properties);
+		return new AvroRowSerializationSchema(p);
 	}
 
 	@Override

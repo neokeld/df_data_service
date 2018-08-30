@@ -74,24 +74,24 @@ public abstract class KafkaTableSink implements UpsertStreamTableSink<Row> {
 	 * Returns the version-specifid Kafka producer.
 	 *
 	 * @param topic               Kafka topic to produce to.
-	 * @param properties          Properties for the Kafka producer.
-	 * @param serializationSchema Serialization schema to use to create Kafka records.
+	 * @param p          Properties for the Kafka producer.
+	 * @param b Serialization schema to use to create Kafka records.
 	 * @param partitioner         Partitioner to select Kafka partition.
 	 * @return The version-specific Kafka producer
 	 */
 	protected abstract FlinkKafkaProducerBase<Tuple2<Boolean, Row>> createKafkaProducer(
-		String topic, Properties properties,
-		SerializationSchema<Tuple2<Boolean, Row>> serializationSchema,
+		String topic, Properties p,
+		SerializationSchema<Tuple2<Boolean, Row>> b,
 		FlinkKafkaPartitioner<Tuple2<Boolean, Row>> partitioner);
 
 	/**
 	 * Create serialization schema for converting table rows into bytes.
 	 *
-	 * @param properties
+	 * @param p
 	 * @return
      */
 
-	protected abstract SerializationSchema<Tuple2<Boolean, Row>> createSerializationSchema(Properties properties) ;
+	protected abstract SerializationSchema<Tuple2<Boolean, Row>> createSerializationSchema(Properties p) ;
 
 	/**
 	 * Create a deep copy of this sink.
@@ -101,8 +101,8 @@ public abstract class KafkaTableSink implements UpsertStreamTableSink<Row> {
 	protected abstract KafkaTableSink createCopy();
 
 	@Override
-	public void emitDataStream(DataStream<Tuple2<Boolean, Row>> dataStream) {
-		dataStream.addSink(createKafkaProducer(topic, properties, serializationSchema, partitioner));
+	public void emitDataStream(DataStream<Tuple2<Boolean, Row>> b) {
+		b.addSink(createKafkaProducer(topic, properties, serializationSchema, partitioner));
 	}
 
 	public String[] getFieldNames() {

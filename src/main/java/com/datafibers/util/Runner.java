@@ -486,34 +486,29 @@ public class Runner {
         }
     }
 
-    public static void runExample(String exampleDir, Class clazz, VertxOptions options, DeploymentOptions
+    public static void runExample(String exampleDir, Class clazz, VertxOptions o, DeploymentOptions
             deploymentOptions) {
-        runExample(exampleDir + clazz.getPackage().getName().replace(".", "/"), clazz.getName(), options, deploymentOptions);
+        runExample(exampleDir + clazz.getPackage().getName().replace(".", "/"), clazz.getName(), o, deploymentOptions);
     }
 
 
-    public static void runScriptExample(String prefix, String scriptName, VertxOptions options) {
+    public static void runScriptExample(String prefix, String scriptName, VertxOptions o) {
         File file = new File(scriptName);
         String dirPart = file.getParent();
-        String scriptDir = prefix + dirPart;
-        runExample(scriptDir, scriptDir + "/" + file.getName(), options, null);
+        runExample(prefix + dirPart, prefix + dirPart + "/" + file.getName(), o, null);
     }
 
-    public static void runExample(String exampleDir, String verticleID, VertxOptions options, DeploymentOptions deploymentOptions) {
-        if (options == null) {
-            // Default parameter
-            options = new VertxOptions();
-        }
-        // Smart cwd detection
+    public static void runExample(String exampleDir, String verticleID, VertxOptions o, DeploymentOptions deploymentOptions) {
+        if (o == null)
+		 o = new VertxOptions();
 
         // Based on the current directory (.) and the desired directory (exampleDir), we try to compute the vertx.cwd
         // directory:
         try {
             // We need to use the canonical file. Without the file name is .
             File current = new File(".").getCanonicalFile();
-            if (exampleDir.startsWith(current.getName()) && !exampleDir.equals(current.getName())) {
-                exampleDir = exampleDir.substring(current.getName().length() + 1);
-            }
+            if (exampleDir.startsWith(current.getName()) && !exampleDir.equals(current.getName()))
+				exampleDir = exampleDir.substring(current.getName().length() + 1);
         } catch (IOException e) {
             // Ignore it.
         }
@@ -521,27 +516,22 @@ public class Runner {
         System.setProperty("vertx.cwd", exampleDir);
         Consumer<Vertx> runner = vertx -> {
             try {
-                if (deploymentOptions != null) {
-                    vertx.deployVerticle(verticleID, deploymentOptions);
-                } else {
-                    vertx.deployVerticle(verticleID);
-                }
+                if (deploymentOptions == null)
+					vertx.deployVerticle(verticleID);
+				else
+					vertx.deployVerticle(verticleID, deploymentOptions);
             } catch (Throwable t) {
                 t.printStackTrace();
             }
         };
-        if (options.isClustered()) {
-            Vertx.clusteredVertx(options, res -> {
-                if (res.succeeded()) {
-                    Vertx vertx = res.result();
-                    runner.accept(vertx);
-                } else {
-                    res.cause().printStackTrace();
-                }
-            });
-        } else {
-            Vertx vertx = Vertx.vertx(options);
-            runner.accept(vertx);
-        }
+        if (!o.isClustered())
+			runner.accept(Vertx.vertx(o));
+		else
+			Vertx.clusteredVertx(o, res -> {
+				if (res.succeeded())
+					runner.accept(res.result());
+				else
+					res.cause().printStackTrace();
+			});
     }
 }

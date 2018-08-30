@@ -18,8 +18,7 @@ package com.datafibers.test_tool;
 public class AvroConsumerVertx extends AbstractVerticle {
 
     public static void main(String[] args) {
-        Vertx vertx = Vertx.vertx();
-        vertx.deployVerticle(new AvroConsumerVertx());
+        Vertx.vertx().deployVerticle(new AvroConsumerVertx());
     }
 
 
@@ -37,7 +36,8 @@ public class AvroConsumerVertx extends AbstractVerticle {
         String topic = "test_stock";
 
         KafkaConsumer<String, String> consumer = KafkaConsumer.create(vertx, props);
-        ArrayList<JsonObject> responseList = new ArrayList<JsonObject>();
+        new ArrayList<JsonObject>();
+		
 
 //        consumer.handler(record -> {// TODO handler does not work
 //            System.out.println("Processing value=" + record.record().value() +
@@ -63,12 +63,9 @@ public class AvroConsumerVertx extends AbstractVerticle {
 
         consumer.partitionsFor(topic, ar -> {
 
-            if (ar.succeeded()) {
-
-                for (PartitionInfo partitionInfo : ar.result()) {
-                    System.out.println(partitionInfo);
-                }
-            }
+            if (ar.succeeded())
+				for (PartitionInfo partitionInfo : ar.result())
+					System.out.println(partitionInfo);
         });
 
     }

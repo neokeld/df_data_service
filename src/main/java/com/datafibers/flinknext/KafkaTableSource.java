@@ -109,11 +109,8 @@ abstract class KafkaTableSource implements StreamTableSource<Row> {
     }
 
     @Override
-    public DataStream<Row> getDataStream(StreamExecutionEnvironment env) {
-        // Version-specific Kafka consumer
-        FlinkKafkaConsumerBase<Row> kafkaConsumer = getKafkaConsumer(topic, properties, deserializationSchema);
-        DataStream<Row> kafkaSource = env.addSource(kafkaConsumer);
-        return kafkaSource;
+    public DataStream<Row> getDataStream(StreamExecutionEnvironment e) {
+        return e.addSource(getKafkaConsumer(topic, properties, deserializationSchema));
     }
 
   
@@ -141,14 +138,14 @@ abstract class KafkaTableSource implements StreamTableSource<Row> {
      * Returns the version-specific Kafka consumer.
      *
      * @param topic                 Kafka topic to consume.
-     * @param properties            Properties for the Kafka consumer.
-     * @param deserializationSchema Deserialization schema to use for Kafka records.
+     * @param p            Properties for the Kafka consumer.
+     * @param r Deserialization schema to use for Kafka records.
      * @return The version-specific Kafka consumer
      */
     abstract FlinkKafkaConsumerBase<Row> getKafkaConsumer(
             String topic,
-            Properties properties,
-            DeserializationSchema<Row> deserializationSchema);
+            Properties p,
+            DeserializationSchema<Row> r);
 
     /**
      * Returns the deserialization schema.
@@ -164,9 +161,8 @@ abstract class KafkaTableSource implements StreamTableSource<Row> {
      */
     protected static TypeInformation<?>[] toTypeInfo(Class<?>[] fieldTypes) {
         TypeInformation<?>[] typeInfos = new TypeInformation[fieldTypes.length];
-        for (int i = 0; i < fieldTypes.length; i++) {
-            typeInfos[i] = TypeExtractor.getForClass(fieldTypes[i]);
-        }
+        for (int i = 0; i < fieldTypes.length; ++i)
+			typeInfos[i] = TypeExtractor.getForClass(fieldTypes[i]);
         return typeInfos;
     }
 

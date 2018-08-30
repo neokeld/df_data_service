@@ -24,31 +24,12 @@ public class WordCountStream {
 		// Create a DataStream from a list of elements
 		//DataStream<Integer> ds = env.fromElements(1, 2, 3, 4, 5);
 
-		CsvTableSource csvTableSource = new CsvTableSource(
-				"/Users/will/Downloads/file.csv",
-				new String[] { "name", "id", "score", "comments" },
-				new TypeInformation<?>[] {
-						Types.STRING(),
-						Types.STRING(),
-						Types.STRING(),
-						Types.STRING()
-				}); // lenient
-
-		tableEnv.registerTableSource("mycsv", csvTableSource);
+		tableEnv.registerTableSource("mycsv", new CsvTableSource("/Users/will/Downloads/file.csv", new String[] { "name", "id", "score", "comments" },
+				new TypeInformation<?>[] { Types.STRING(), Types.STRING(), Types.STRING(), Types.STRING() }));
 
 
 
-		TableSink sink = new CsvTableSink("/Users/will/Downloads/out.csv", "|");
-
-
-		//tableEnv.registerDataStream("tbl", ds, "a");
-		//Table ingest = tableEnv.fromDataStream(ds, "name");
-		Table in = tableEnv.scan("mycsv");
-		//Table in = tableEnv.ingest("tbl");
-		//Table in = tableEnv.fromDataStream(ds, "a");
-
-		Table result = in.select("name");
-		result.writeToSink(sink);
+		tableEnv.scan("mycsv").select("name").writeToSink(new CsvTableSink("/Users/will/Downloads/out.csv", "|"));
 		try {
 			env.execute();
 		} catch (Exception e) {

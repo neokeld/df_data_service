@@ -21,45 +21,23 @@ public class CodeGenFlinkTable {
 
 	public static void main(String args[]) {
 
-		String transform2 = "select(\"name\");\n";
-
-		String header = "package dynamic;\n" +
-				"import org.apache.flink.api.table.Table;\n" +
-				"import com.datafibers.util.*;\n";
-
-		String javaCode2 = header +
-				"public class FlinkScript implements DynamicRunner {\n" +
-				"@Override \n" +
-				"    public Table transTableObj(Table tbl) {\n" +
-					"try {" +
-					"return tbl."+ transform2 +
-					"} catch (Exception e) {" +
-					"};" +
-					"return null;}}";
+		String transform2 = "select(\"name\");\n",
+				header = "package dynamic;\nimport org.apache.flink.api.table.Table;\nimport com.datafibers.util.*;\n",
+				javaCode2 = header + "public class FlinkScript implements DynamicRunner {\n@Override \n"
+						+ "    public Table transTableObj(Table tbl) {\ntry {return tbl." + transform2
+						+ "} catch (Exception e) {};return null;}}";
 
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
-		CsvTableSource csvTableSource = new CsvTableSource(
-				"/Users/will/Downloads/file.csv",
-				new String[] { "name", "id", "score", "comments" },
-				new TypeInformation<?>[] {
-						Types.STRING(),
-						Types.STRING(),
-						Types.STRING(),
-						Types.STRING()
-				}); // lenient
-
-		tableEnv.registerTableSource("mycsv", csvTableSource);
+		tableEnv.registerTableSource("mycsv", new CsvTableSource("/Users/will/Downloads/file.csv", new String[] { "name", "id", "score", "comments" },
+				new TypeInformation<?>[] { Types.STRING(), Types.STRING(), Types.STRING(), Types.STRING() }));
 		TableSink sink = new CsvTableSink("/Users/will/Downloads/out.csv", "|");
 		Table ingest = tableEnv.scan("mycsv");
 
 		try {
-			String className = "dynamic.FlinkScript";
-			Class aClass = CompilerUtils.CACHED_COMPILER.loadFromJava(className, javaCode2);
-			DynamicRunner runner = (DynamicRunner) aClass.newInstance();
-			Table result = runner.transTableObj(ingest);
 			// write the result Table to the TableSink
-			result.writeToSink(sink);
+			((DynamicRunner) CompilerUtils.CACHED_COMPILER.loadFromJava("dynamic.FlinkScript", javaCode2).newInstance())
+					.transTableObj(ingest).writeToSink(sink);
 			env.execute();
 
 		} catch (Exception e) {
