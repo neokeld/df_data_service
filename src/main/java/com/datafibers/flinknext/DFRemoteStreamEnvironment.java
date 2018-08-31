@@ -5,24 +5,15 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-
-import com.datafibers.model.DFJobPOPJ;
 
 import org.apache.flink.annotation.Public;
 import org.apache.flink.api.common.InvalidProgramException;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.client.program.JobWithJars;
-import org.apache.flink.client.program.ProgramInvocationException;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.JobManagerOptions;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.graph.StreamGraph;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * For Unit Test Only
@@ -31,7 +22,6 @@ import org.slf4j.LoggerFactory;
  */
 @Public
 public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
-    private static final Logger LOG = LoggerFactory.getLogger(DFRemoteStreamEnvironment.class);
 
     /** The hostname of the JobManager. */
     private final String host;
@@ -44,9 +34,6 @@ public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
 
     /** The jar files that need to be attached to each job. */
     private final List<URL> jarFiles;
-
-    /** The classpaths that need to be attached to each job. */
-    private final List<URL> globalClasspaths;
 
     /**
      * Creates a new RemoteStreamEnvironment that points to the master
@@ -144,85 +131,15 @@ public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
 				throw new RuntimeException("Problem with jar file " + jarFile, e);
 			}
 		}
-        this.globalClasspaths = globalClasspaths == null ? Collections.emptyList() : Arrays.asList(globalClasspaths);
     }
 
+    @Override
     public DFRemoteStreamEnvironment setParallelism(int parallelism) {
         if (parallelism < 1) {
 			throw new IllegalArgumentException("parallelism must be at least one.");
 		}
         super.getConfig().setParallelism(parallelism);
         return this;
-    }
-
-    @Override
-    public JobExecutionResult execute(String jobName) throws ProgramInvocationException {
-        StreamGraph streamGraph = getStreamGraph();
-        streamGraph.setJobName(jobName);
-        transformations.clear();
-        return executeRemotely(streamGraph, jarFiles);
-    }
-
-    public JobExecutionResult executeWithDFObj(String jobName, DFJobPOPJ j) throws ProgramInvocationException {
-        StreamGraph streamGraph = getStreamGraph();
-        streamGraph.setJobName(jobName);
-        transformations.clear();
-        return executeRemotely(streamGraph, jarFiles, j);
-    }
-
-    /**
-     * Executes the remote job.
-     *
-     * @param g
-     *            Stream Graph to execute
-     * @param jarFiles
-     * 			  List of jar file URLs to ship to the cluster
-     * @return The result of the job execution, containing elapsed time and accumulators.
-     */
-    protected JobExecutionResult executeRemotely(StreamGraph g, List<URL> jarFiles)
-            throws ProgramInvocationException {
-        return executeRemotely(g, jarFiles, null);
-    }
-
-    protected JobExecutionResult executeRemotely(StreamGraph g, List<URL> jarFiles,
-                                                 DFJobPOPJ j) throws ProgramInvocationException {
-        if (LOG.isInfoEnabled()) {
-			LOG.info("Running remotely at {}:{}", host, port);
-		}
-
-        ClassLoader usercodeClassLoader = JobWithJars.buildUserCodeClassLoader(jarFiles, globalClasspaths,
-                getClass().getClassLoader());
-
-        Configuration configuration = new Configuration(this.clientConfiguration);
-        configuration.setString(JobManagerOptions.ADDRESS, host);
-        configuration.setInteger(JobManagerOptions.PORT, port);
-
-        DFCusterClient client;
-        try {
-            client = new DFCusterClient(configuration);
-            client.setPrintStatusDuringExecution(getConfig().isSysoutLoggingEnabled());
-        }
-        catch (Exception e) {
-            throw new ProgramInvocationException("Cannot establish connection to JobManager: " + e.getMessage(), e);
-        }
-
-        try {
-            return client.runWithDFObj(g, jarFiles, globalClasspaths, usercodeClassLoader, j).getJobExecutionResult();
-        }
-        catch (ProgramInvocationException e) {
-            throw e;
-        }
-        catch (Exception e) {
-            throw new ProgramInvocationException(
-					"The program execution failed" + (e.getMessage() == null ? "." : (": " + e.getMessage())), e);
-        }
-        finally {
-            try {
-				client.shutdown();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-        }
     }
 
     @Override
@@ -254,4 +171,10 @@ public class DFRemoteStreamEnvironment extends StreamExecutionEnvironment {
     public Configuration getClientConfiguration() {
         return clientConfiguration;
     }
+
+	@Override
+	public JobExecutionResult execute(String arg0) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

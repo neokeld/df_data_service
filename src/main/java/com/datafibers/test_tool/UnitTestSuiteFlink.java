@@ -3,7 +3,6 @@ package com.datafibers.test_tool;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Properties;
 
 import net.openhft.compiler.CompilerUtils;
@@ -21,10 +20,8 @@ import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.sinks.CsvTableSink;
 import org.apache.log4j.Logger;
-import com.datafibers.flinknext.DFRemoteStreamEnvironment;
 import com.datafibers.flinknext.Kafka09AvroTableSink;
 import com.datafibers.flinknext.Kafka09AvroTableSource;
-import com.datafibers.model.DFJobPOPJ;
 import com.datafibers.service.DFInitService;
 import com.datafibers.util.DynamicRunner;
 import com.datafibers.util.SchemaRegistryClient;
@@ -147,34 +144,6 @@ public class UnitTestSuiteFlink {
         }
     }
 
-    public static void testFlinkAvroSQLJson() {
-    	LOG.info("TestCase_Test Avro SQL to Json Sink");
-        String jarPath = DFInitService.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        DFRemoteStreamEnvironment env = new DFRemoteStreamEnvironment("localhost", 6123, jarPath)
-                .setParallelism(1);
-        StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
-        Properties properties = new Properties();
-        properties.setProperty("bootstrap.servers", "localhost:9092");
-        properties.setProperty("group.id", "consumer_test");
-        properties.setProperty("schema.subject", "test-value");
-        properties.setProperty("schema.registry", "localhost:8081");
-        properties.setProperty("useAvro", "avro");
-        properties.setProperty("static.avro.schema",
-                SchemaRegistryClient.getSchemaFromRegistry("http://localhost:8081", "test-value", "latest").toString());
-
-        try {
-            HashMap<String, String> hm = new HashMap<>();
-            tableEnv.registerTableSource(ORDERS, new Kafka09AvroTableSource("test", properties));
-
-            Table result = tableEnv.sql(SELECT_NAME_SYMBOL_EXCHANGECODE_FROM_ORDERS);
-            // write the result Table to the TableSink
-            result.writeToSink(new Kafka09AvroTableSink("test_json", properties, new FlinkFixedPartitioner()));
-            env.executeWithDFObj(FLINK_AVRO_SQL_KAFKA_TEST, new DFJobPOPJ().setJobConfig(hm) );
-        } catch (Exception e) {
-        	LOG.error(Arrays.toString(e.getStackTrace()));
-        }
-    }
-
     public static void testSchemaRegisterClient() {
     	LOG.info("TestCase_Test Schema Register Client");
 
@@ -250,6 +219,5 @@ public class UnitTestSuiteFlink {
 
     public static void main(String[] args) {
     	LOG.info(SchemaRegistryClient.getSchemaFromRegistry ("http://localhost:8081", "test-value", "latest"));
-        testFlinkAvroSQLJson();
     }
 }

@@ -54,8 +54,6 @@ public class DFInitService {
 			case "2":
 				UnitTestSuiteFlink.testFlinkAvroSQL();
 				break;
-			case "4":
-				UnitTestSuiteFlink.testFlinkAvroSQLJson();
 			case "5":
 				UnitTestSuiteFlink.testFlinkAvroSQLWithStaticSchema();
 			case "6":

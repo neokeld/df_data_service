@@ -6,6 +6,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer09;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
 import org.apache.flink.streaming.util.serialization.DeserializationSchema;
+import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.sources.StreamTableSource;
 import org.apache.flink.types.Row;
 /** Kafka {@link StreamTableSource} for Kafka 0.9. */
@@ -60,4 +61,10 @@ public class Kafka09AvroTableSource extends KafkaAvroTableSource {
     FlinkKafkaConsumerBase<Row> getKafkaConsumer(String topic, Properties p, DeserializationSchema<Row> r) {
         return new FlinkKafkaConsumer09<>(topic, r, p);
     }
+
+	@Override
+	public TableSchema getTableSchema() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
