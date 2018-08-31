@@ -9,6 +9,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
+import io.vertx.ext.mongo.MongoClientUpdateResult;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
@@ -75,10 +76,6 @@ public class ProcessorConnectKafka {
 						LOG.info(DFAPIMessage.logResponseMessage(1023, taskId));
 					}
                 });
-    }
-
-    private void sendGetConfig(AsyncResult<HttpResponse<Buffer>> ar) {
-    	
     }
     
     /**
@@ -259,37 +256,46 @@ public class ProcessorConnectKafka {
 			LOG.debug("WILL_PUT_TO_KAFKA_CONNECT - " + dfJobResponsed.toKafkaConnectJsonConfig());
 			webClient.put(kafkaConnectRestPort, kafkaConnectRestHost, connectURL)
 					.putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE, ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
-					.sendJsonObject(dfJobResponsed.toKafkaConnectJsonConfig(), ar -> {
-						if (ar.result().statusCode() == ConstantApp.STATUS_CODE_OK_ACCEPTED) {
-							LOG.info(DFAPIMessage.logResponseMessage(1000, dfJobResponsed.getId()));
-						} else {
-							mongoClient.updateCollection(mongoCOLLECTION, new JsonObject().put("_id", id),
-									new JsonObject().put("$set", dfJobResponsed.setStatus(preStatus).toJson()), v -> {
-										if (!v.failed()) {
-											HelpFunc.responseCorsHandleAddOn(c.response())
-													.end(DFAPIMessage.getResponseMessage(9033));
-											LOG.info(DFAPIMessage.logResponseMessage(9033, id));
-										} else {
-											c.response().setStatusCode(ConstantApp.STATUS_CODE_NOT_FOUND)
-													.end(DFAPIMessage.getResponseMessage(9034));
-											LOG.error(DFAPIMessage.logResponseMessage(9034, id));
-										}
-									});
-						}
-					});
+					.sendJsonObject(dfJobResponsed.toKafkaConnectJsonConfig(), sendJsonPut(c, mongoClient, mongoCOLLECTION, dfJobResponsed, id, preStatus));
 			mongoClient.updateCollection(mongoCOLLECTION, new JsonObject().put("_id", id),
-					new JsonObject().put("$set", dfJobResponsed.toJson()), v -> {
-						if (!v.failed()) {
-							HelpFunc.responseCorsHandleAddOn(c.response()).end(DFAPIMessage.getResponseMessage(1001));
-							LOG.info(DFAPIMessage.logResponseMessage(1001, id));
-						} else {
-							c.response().setStatusCode(ConstantApp.STATUS_CODE_NOT_FOUND)
-									.end(DFAPIMessage.getResponseMessage(9003));
-							LOG.error(DFAPIMessage.logResponseMessage(9003, id));
-						}
-					});
+					new JsonObject().put("$set", dfJobResponsed.toJson()), updateOptions(c, id));
 		}
     }
+
+	private static Handler<AsyncResult<MongoClientUpdateResult>> updateOptions(RoutingContext c, final String id) {
+		return v -> {
+			if (!v.failed()) {
+				HelpFunc.responseCorsHandleAddOn(c.response()).end(DFAPIMessage.getResponseMessage(1001));
+				LOG.info(DFAPIMessage.logResponseMessage(1001, id));
+			} else {
+				c.response().setStatusCode(ConstantApp.STATUS_CODE_NOT_FOUND)
+						.end(DFAPIMessage.getResponseMessage(9003));
+				LOG.error(DFAPIMessage.logResponseMessage(9003, id));
+			}
+		};
+	}
+
+	private static Handler<AsyncResult<HttpResponse<Buffer>>> sendJsonPut(RoutingContext c, MongoClient mongoClient,
+			String mongoCOLLECTION, DFJobPOPJ dfJobResponsed, final String id, String preStatus) {
+		return ar -> {
+			if (ar.result().statusCode() == ConstantApp.STATUS_CODE_OK_ACCEPTED) {
+				LOG.info(DFAPIMessage.logResponseMessage(1000, dfJobResponsed.getId()));
+			} else {
+				mongoClient.updateCollection(mongoCOLLECTION, new JsonObject().put("_id", id),
+						new JsonObject().put("$set", dfJobResponsed.setStatus(preStatus).toJson()), v -> {
+							if (!v.failed()) {
+								HelpFunc.responseCorsHandleAddOn(c.response())
+										.end(DFAPIMessage.getResponseMessage(9033));
+								LOG.info(DFAPIMessage.logResponseMessage(9033, id));
+							} else {
+								c.response().setStatusCode(ConstantApp.STATUS_CODE_NOT_FOUND)
+										.end(DFAPIMessage.getResponseMessage(9034));
+								LOG.error(DFAPIMessage.logResponseMessage(9034, id));
+							}
+						});
+			}
+		};
+	}
 
     /**
      * This method first decode the REST DELETE request to DFJobPOPJ object. Then, it updates its job status and repack
