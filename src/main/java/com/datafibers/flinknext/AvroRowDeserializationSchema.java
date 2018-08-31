@@ -33,16 +33,13 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
     private final String[] fieldNames;
     /** Types to parse fields as. Indices match fieldNames indices. */
     private final TypeInformation<?>[] fieldTypes;
-    private final String static_avro_schema;
+    private final String staticAvroSchema;
 
     /** Object mapper for parsing the JSON. */
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /** Flag indicating whether to fail on a missing field. */
     private boolean failOnMissingField;
-
-    /** Generic Avro Schema reader for the row. */
-    private transient GenericDatumReader<GenericRecord> reader;
 
     /** TODO - When schema changes, the Source table does not need to be recreated.*/
 
@@ -54,7 +51,7 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
      */
     public AvroRowDeserializationSchema(String[] fieldNames, Class<?>[] fieldTypes, Properties properties) {
         Preconditions.checkNotNull(properties, "properties");
-        static_avro_schema = properties.getProperty(ConstantApp.PK_SCHEMA_STR_INPUT);
+        staticAvroSchema = properties.getProperty(ConstantApp.PK_SCHEMA_STR_INPUT);
 
         this.fieldNames = Preconditions.checkNotNull(fieldNames, "Field names");
         this.fieldTypes = new TypeInformation[fieldTypes.length];
@@ -74,7 +71,7 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
      */
     public AvroRowDeserializationSchema(String[] fieldNames, TypeInformation<?>[] fieldTypes, Properties properties) {
         Preconditions.checkNotNull(properties, "properties");
-        static_avro_schema = properties.getProperty(ConstantApp.PK_SCHEMA_STR_INPUT);
+        staticAvroSchema = properties.getProperty(ConstantApp.PK_SCHEMA_STR_INPUT);
 
         this.fieldNames = Preconditions.checkNotNull(fieldNames, "Field names");
         this.fieldTypes = Preconditions.checkNotNull(fieldTypes, "Field types");
@@ -98,7 +95,7 @@ public class AvroRowDeserializationSchema implements DeserializationSchema<Row> 
 						buffer.limit() - ConstantApp.idSize - 1, null);
             }
                         JsonNode root;
-            reader = new GenericDatumReader<>(new Schema.Parser().parse(static_avro_schema));//TODO get row level schema
+            GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(new Schema.Parser().parse(staticAvroSchema));//TODO get row level schema
             root = objectMapper.readTree(reader.read(null, decoder).toString());
             Row row = new Row(fieldNames.length);
             for (int i = 0; i < fieldNames.length; ++i) {

@@ -1,19 +1,33 @@
 package com.datafibers.processor;
 
 import com.datafibers.util.DFAPIMessage;
+
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+
+import java.util.List;
+
 import org.apache.log4j.Logger;
 import com.datafibers.model.DFJobPOPJ;
 import com.datafibers.util.ConstantApp;
 import com.datafibers.util.HelpFunc;
 
 public class ProcessorConnectKafka {
+	
+	private static final String CONNECTOR = "connector";
     private static final Logger LOG = Logger.getLogger(ProcessorConnectKafka.class);
+	private ProcessorConnectKafka() {
+		
+	}
+	
         /**
      * This method is used to get the kafka job stauts. It first decodes the REST GET request to DFJobPOPJ object.
      * Then, it updates its job status and repack for Kafka REST GET.
@@ -44,15 +58,15 @@ public class ProcessorConnectKafka {
 						if (subTaskArray.isEmpty()) {
 							subTaskArray.add(new JsonObject().put("subTaskId", "e").put("id", taskId + "_e")
 									.put("jobId", taskId).put("dfTaskState", HelpFunc.getTaskStatusKafka(jo))
-									.put("taskState", jo.getJsonObject("connector").getString("state"))
-									.put("taskTrace", jo.getJsonObject("connector").getString("trace")));
+									.put("taskState", jo.getJsonObject(CONNECTOR).getString("state"))
+									.put("taskTrace", jo.getJsonObject(CONNECTOR).getString("trace")));
 						} else {
 							for (int i = 0; i < subTaskArray.size(); ++i) {
 								subTaskArray.getJsonObject(i)
 										.put("subTaskId", subTaskArray.getJsonObject(i).getInteger("id"))
 										.put("id", taskId + "_" + subTaskArray.getJsonObject(i).getInteger("id"))
 										.put("jobId", taskId).put("dfTaskState", HelpFunc.getTaskStatusKafka(jo))
-										.put("taskState", jo.getJsonObject("connector").getString("state"));
+										.put("taskState", jo.getJsonObject(CONNECTOR).getString("state"));
 							}
 						}
 						HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
@@ -63,6 +77,10 @@ public class ProcessorConnectKafka {
                 });
     }
 
+    private void sendGetConfig(AsyncResult<HttpResponse<Buffer>> ar) {
+    	
+    }
+    
     /**
      * This method is used to get the kafka job stauts. It first decodes the REST GET request to DFJobPOPJ object.
      * Then, it updates its job status and repack for Kafka REST GET.
@@ -82,31 +100,42 @@ public class ProcessorConnectKafka {
         // Create REST Client for Kafka Connect REST Forward
         webClient.get(kafkaConnectRestPort, kafkaConnectRestHost, ConstantApp.KAFKA_CONNECT_PLUGIN_REST_URL)
                 .putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE, ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
-                .send(ar -> {
-                    if (!ar.succeeded()) {
-						LOG.error(DFAPIMessage.logResponseMessage(9036, ""));
-					} else {
-						JsonArray configArray = ar.result().bodyAsJsonArray(), configClassArray = new JsonArray();
-						for (int i = 0; i < configArray.size(); ++i) {
-							configClassArray.add(configArray.getJsonObject(i).getString("class"));
-						}
-						JsonObject query = new JsonObject().put("$and", new JsonArray()
-								.add(new JsonObject().put("class", new JsonObject().put("$in", configClassArray)))
-								.add(new JsonObject().put("meta_type", "installed_connect")));
-						mongoClient.findWithOptions(mongoCOLLECTION, query, HelpFunc.getMongoSortFindOption(c), res -> {
-							if ("[]".equalsIgnoreCase(res.result().toString())) {
-								LOG.warn("RUN_BELOW_CMD_TO_SEE_FULL_METADATA");
-								LOG.warn("mongoimport -c df_installed -d DEFAULT_DB --file df_installed.json");
-							}
-							if (res.succeeded()) {
-								HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
-										.end(Json.encodePrettily(
-												(res.result().isEmpty() ? ar : res).result()));
-							}
-						});
-					}
-                });
+                .send(sendGetConfig(c, mongoClient, mongoCOLLECTION));
     }
+
+	private static Handler<AsyncResult<HttpResponse<Buffer>>> sendGetConfig(RoutingContext c, MongoClient mongoClient,
+			String mongoCOLLECTION) {
+		return ar -> {
+		    if (!ar.succeeded()) {
+				LOG.error(DFAPIMessage.logResponseMessage(9036, ""));
+			} else {
+				final JsonArray configArray = ar.result().bodyAsJsonArray();
+				JsonArray configClassArray = new JsonArray();
+				for (int i = 0; i < configArray.size(); ++i) {
+					configClassArray.add(configArray.getJsonObject(i).getString("class"));
+				}
+				final JsonObject query = new JsonObject().put("$and", new JsonArray()
+						.add(new JsonObject().put("class", new JsonObject().put("$in", configClassArray)))
+						.add(new JsonObject().put("meta_type", "installed_connect")));
+				mongoClient.findWithOptions(mongoCOLLECTION, query, HelpFunc.getMongoSortFindOption(c), ressourcesOptions(c, ar));
+			}
+		};
+	}
+
+	private static Handler<AsyncResult<List<JsonObject>>> ressourcesOptions(RoutingContext c,
+			AsyncResult<HttpResponse<Buffer>> ar) {
+		return res -> {
+			if ("[]".equalsIgnoreCase(res.result().toString())) {
+				LOG.warn("RUN_BELOW_CMD_TO_SEE_FULL_METADATA");
+				LOG.warn("mongoimport -c df_installed -d DEFAULT_DB --file df_installed.json");
+			}
+			if (res.succeeded()) {
+				HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_OK)
+						.end(Json.encodePrettily(
+								(res.result().isEmpty() ? ar : res).result()));
+			}
+		};
+	}
 
     /**
      * This method first decode the REST POST request to DFJobPOPJ object. Then, it updates its job status and repack
@@ -163,7 +192,8 @@ public class ProcessorConnectKafka {
                                               MongoClient mongoClient, String mongoCOLLECTION,
                                               String kafkaConnectRestHost, int kafkaConnectRestPort,
                                               DFJobPOPJ dfJobResponsed) {
-        final String id = c.request().getParam("id"), restURL = ConstantApp.KAFKA_CONNECT_PLUGIN_CONFIG
+        final String id = c.request().getParam("id");
+        final String restURL = ConstantApp.KAFKA_CONNECT_PLUGIN_CONFIG
 				.replace("CONNECTOR_NAME_PLACEHOLDER", dfJobResponsed.getConnectUid());
         webClient.put(kafkaConnectRestPort, kafkaConnectRestHost, restURL)
                 .putHeader(ConstantApp.HTTP_HEADER_CONTENT_TYPE, ConstantApp.HTTP_HEADER_APPLICATION_JSON_CHARSET)
@@ -182,7 +212,7 @@ public class ProcessorConnectKafka {
                 );
         // Here update the repo right way to ack ui. Even something is wrong, status sync. can still catch the update
         mongoClient.updateCollection(mongoCOLLECTION, new JsonObject().put("_id", id),
-                // The update syntax: {$set, the json object containing the fields to update}
+                // The update syntax: $set, the json object containing the fields to update
                 new JsonObject().put("$set", dfJobResponsed.toJson()), v -> {
                     if (!v.failed()) {
 						HelpFunc.responseCorsHandleAddOn(c.response()).end(DFAPIMessage.getResponseMessage(1000));
@@ -213,9 +243,11 @@ public class ProcessorConnectKafka {
                                                      MongoClient mongoClient, String mongoCOLLECTION,
                                                      String kafkaConnectRestHost, int kafkaConnectRestPort,
                                                      DFJobPOPJ dfJobResponsed, String action) {
-        final String id = c.request().getParam("id"), connectURL = ConstantApp.KAFKA_CONNECT_REST_URL + "/"
+        final String id = c.request().getParam("id");
+        final String connectURL = ConstantApp.KAFKA_CONNECT_REST_URL + "/"
 				+ dfJobResponsed.getConnectUid() + "/" + action.toLowerCase();
-        String status = dfJobResponsed.getStatus(), preStatus = status;
+        String status = dfJobResponsed.getStatus();
+        String preStatus = status;
         if (!ConstantApp.KAFKA_CONNECT_ACTION_PAUSE.equalsIgnoreCase(status)
 				&& !ConstantApp.KAFKA_CONNECT_ACTION_RESUME.equalsIgnoreCase(status)) {
 			HelpFunc.responseCorsHandleAddOn(c.response()).setStatusCode(ConstantApp.STATUS_CODE_BAD_REQUEST)

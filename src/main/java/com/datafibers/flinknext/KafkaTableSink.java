@@ -63,7 +63,6 @@ public abstract class KafkaTableSink implements UpsertStreamTableSink<Row> {
 		this.properties = Preconditions.checkNotNull(properties, "properties");
 		this.partitioner = Preconditions.checkNotNull(partitioner, "partitioner");
 		this.schema = SchemaRegistryClient.getLatestSchemaFromProperty(properties, ConstantApp.PK_SCHEMA_SUB_OUTPUT);
-		//setIsAppendOnly(false);
 		setIsAppendOnly(true);
 		setKeyFields(properties.getProperty(ConstantApp.PK_FLINK_TABLE_SINK_KEYS).split(","));
 	}
@@ -107,7 +106,6 @@ public abstract class KafkaTableSink implements UpsertStreamTableSink<Row> {
 		return fieldNames;
 	}
 
-	/** @Override */
 	public TypeInformation<?>[] getFieldTypes() {
 		return fieldTypes;
 	}

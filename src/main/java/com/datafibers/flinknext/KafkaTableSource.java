@@ -107,22 +107,18 @@ abstract class KafkaTableSource implements StreamTableSource<Row> {
         return e.addSource(getKafkaConsumer(topic, properties, deserializationSchema));
     }
 
-      /** @Override */
     public int getNumberOfFields() {
         return fieldNames.length;
     }
 
-   /** @Override */
     public String[] getFieldsNames() {
         return fieldNames;
     }
 
-   /** @Override */
     public TypeInformation<?>[] getFieldTypes() {
         return fieldTypes;
     }
 
-    /** @Override */
     public TypeInformation<Row> getReturnType() {
         return new RowTypeInfo(fieldTypes, fieldNames);
     }
